@@ -1,7 +1,7 @@
-from django.db.models import Q, Count
+from django.db.models import Q
 from accounts.notifications import unread_count
 from chat.models import Conversation, Message
-from .models import Cart
+from orders.models import Cart
 
 
 def get_or_create_cart(request):
@@ -27,14 +27,17 @@ def cart_count(request):
 def site_notifications(request):
     if not request.user.is_authenticated:
         return {'notification_count': 0, 'chat_unread_count': 0}
-    chat_unread = Message.objects.filter(
-        conversation__in=Conversation.objects.filter(
-            Q(buyer=request.user) | Q(seller=request.user),
-        ),
-        is_read=False,
-        is_deleted=False,
-    ).exclude(sender=request.user).count()
-    return {
-        'notification_count': unread_count(request.user),
-        'chat_unread_count': chat_unread,
-    }
+    try:
+        chat_unread = Message.objects.filter(
+            conversation__in=Conversation.objects.filter(
+                Q(buyer=request.user) | Q(seller=request.user),
+            ),
+            is_read=False,
+            is_deleted=False,
+        ).exclude(sender=request.user).count()
+        return {
+            'notification_count': unread_count(request.user),
+            'chat_unread_count': chat_unread,
+        }
+    except Exception:
+        return {'notification_count': 0, 'chat_unread_count': 0}
