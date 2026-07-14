@@ -252,7 +252,7 @@ def seller_reviews(request):
 
 @login_required
 def seller_looking_requests(request):
-    return redirect(reverse('accounts:profile') + '#offers')
+    return redirect(reverse('accounts:profile') + '?tab=requests')
 
 
 @login_required

@@ -220,7 +220,7 @@ def search_request_view(request):
     )
     messages.success(request, 'Заявка на поиск отправлена!')
     if request.user.is_authenticated:
-        return redirect(reverse('accounts:profile') + '#my-searches')
+        return redirect(reverse('accounts:profile') + '?tab=requests#my-searches')
     return redirect('catalog:looking')
 
 
@@ -346,7 +346,7 @@ def decline_search_offer(request, pk):
     seller = sr.matched_seller or (sr.matched_listing.user if sr.matched_listing else None)
     if not sr.matched_listing or not seller:
         messages.error(request, 'Нет активного предложения для отклонения')
-        return redirect(reverse('accounts:profile') + '#offers')
+        return redirect(reverse('accounts:profile') + '?tab=requests#offers')
 
     listing_title = sr.matched_listing.title
     query = sr.query
@@ -366,7 +366,7 @@ def decline_search_offer(request, pk):
     )
 
     messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам.')
-    return redirect(reverse('accounts:profile') + '#offers')
+    return redirect(reverse('accounts:profile') + '?tab=requests#offers')
 
 
 @login_required
@@ -381,7 +381,7 @@ def withdraw_search_offer(request, pk):
     )
     if not sr.matched_listing:
         messages.error(request, 'Нет активного предложения')
-        return redirect(reverse('accounts:profile') + '#sent')
+        return redirect(reverse('accounts:profile') + '?tab=requests#sent')
 
     listing_title = sr.matched_listing.title
     buyer = sr.user
@@ -403,7 +403,7 @@ def withdraw_search_offer(request, pk):
         )
 
     messages.success(request, 'Предложение отозвано. Заявка снова в общем списке.')
-    return redirect(reverse('accounts:profile') + '#sent')
+    return redirect(reverse('accounts:profile') + '?tab=requests#sent')
 
 
 def search_preview(request):

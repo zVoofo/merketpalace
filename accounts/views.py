@@ -348,8 +348,22 @@ def profile_view(request):
         response_seen=False,
     ).count()
 
+    tab = request.GET.get('tab', 'overview')
+    if tab not in ('overview', 'requests', 'board'):
+        tab = 'overview'
+    if tab == 'board' and request.user.active_role != 'seller':
+        tab = 'overview'
+
+    requests_anchor = 'offers'
+    if tab == 'requests':
+        hash_anchor = request.GET.get('section', '')
+        if hash_anchor in ('offers', 'my-searches', 'sent'):
+            requests_anchor = hash_anchor
+
     ctx = {
         'title': 'Профиль',
+        'tab': tab,
+        'requests_anchor': requests_anchor,
         'form': form,
         'org_form': org_form,
         'wallet': wallet,
@@ -374,7 +388,7 @@ def cabinet_view(request):
 
 @login_required
 def my_requests_view(request):
-    return redirect(reverse('accounts:profile') + '#offers')
+    return redirect(reverse('accounts:profile') + '?tab=requests')
 
 
 @login_required

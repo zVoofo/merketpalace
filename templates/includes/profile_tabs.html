@@ -1,0 +1,10 @@
+<nav class="profile-tabs" aria-label="Разделы профиля">
+    <a href="{% url 'accounts:profile' %}?tab=overview" data-profile-tab="overview"{% if tab == 'overview' %} class="is-active"{% endif %}>Профиль</a>
+    <a href="{% url 'accounts:profile' %}?tab=requests" data-profile-tab="requests"{% if tab == 'requests' %} class="is-active"{% endif %}>
+        Мои заявки{% if incoming_count %} <span class="cabinet-nav__badge">{{ incoming_count }}</span>{% endif %}
+    </a>
+    {% if user.active_role == 'seller' %}
+        <a href="{% url 'accounts:profile' %}?tab=board" data-profile-tab="board"{% if tab == 'board' %} class="is-active"{% endif %}>Откликнуться</a>
+        <a href="{% url 'seller:listings' %}">Мои объявления</a>
+    {% endif %}
+</nav>

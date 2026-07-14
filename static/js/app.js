@@ -348,6 +348,40 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   }
 })();
 
+/* --- Профиль: якоря внутри вкладки «Мои заявки» --- */
+(function initProfileRequestsNav() {
+  const hash = (location.hash || '').replace('#', '');
+  if (['offers', 'my-searches', 'sent'].includes(hash) && !location.search.includes('tab=requests')) {
+    location.replace(`${location.pathname}?tab=requests#${hash}`);
+    return;
+  }
+
+  const panel = document.getElementById('profile-panel-requests');
+  if (!panel) return;
+
+  const scrollToAnchor = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    panel.querySelectorAll('[data-requests-anchor]').forEach((link) => {
+      link.classList.toggle('is-active', link.dataset.requestsAnchor === id);
+    });
+  };
+
+  panel.querySelectorAll('[data-requests-anchor]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      scrollToAnchor(link.dataset.requestsAnchor);
+      history.replaceState(null, '', `?tab=requests#${link.dataset.requestsAnchor}`);
+    });
+  });
+
+  const hash = (location.hash || '').replace('#', '');
+  if (location.search.includes('tab=requests') && ['offers', 'my-searches', 'sent'].includes(hash)) {
+    requestAnimationFrame(() => scrollToAnchor(hash));
+  }
+})();
+
 /* --- Заглушка для битых картинок (только вне каталога) --- */
 document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) => {
   img.addEventListener('error', () => {
