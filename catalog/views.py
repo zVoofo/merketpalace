@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -227,7 +228,7 @@ def decline_search_offer(request, pk):
     )
 
     messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам в разделе «Ищу».')
-    return redirect('accounts:profile#looking-responses')
+    return redirect(reverse('accounts:profile') + '#looking-responses')
 
 
 def search_preview(request):

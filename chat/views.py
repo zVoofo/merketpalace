@@ -87,9 +87,13 @@ def conversation_start(request, listing_id):
     listing = get_object_or_404(Listing, pk=listing_id)
     if listing.user == request.user:
         return redirect('listings:detail', slug=listing.slug)
-    conv, _ = Conversation.objects.get_or_create(
+    conv = Conversation.objects.filter(
         listing=listing, buyer=request.user, seller=listing.user, is_support=False,
-    )
+    ).order_by('-last_msg_at', '-pk').first()
+    if not conv:
+        conv = Conversation.objects.create(
+            listing=listing, buyer=request.user, seller=listing.user, is_support=False,
+        )
     listing.chat_clicks += 1
     listing.save(update_fields=['chat_clicks'])
     return redirect('chat:detail', pk=conv.pk)
