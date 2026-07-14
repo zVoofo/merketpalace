@@ -1,5 +1,13 @@
 document.getElementById('burger')?.addEventListener('click', () => {
   document.getElementById('main-nav')?.classList.toggle('open');
+  const dropdown = document.getElementById('notify-dropdown');
+  const bell = document.getElementById('notify-bell');
+  if (dropdown && bell && !dropdown.hasAttribute('hidden')) {
+    dropdown.setAttribute('hidden', '');
+    dropdown.style.display = 'none';
+    bell.setAttribute('aria-expanded', 'false');
+    document.getElementById('nav-notify')?.classList.remove('is-open');
+  }
 });
 
 /* Сброс горизонтального сдвига шапки после переполнения */
@@ -621,24 +629,40 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value
     || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 
+  const isMobileNav = () => window.matchMedia('(max-width: 768px)').matches;
+
   const positionDropdown = () => {
     const rect = bell.getBoundingClientRect();
-    dropdown.style.top = `${rect.bottom + 8}px`;
-    dropdown.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
-    dropdown.style.left = 'auto';
+    if (isMobileNav()) {
+      const headerBottom = document.querySelector('.header')?.getBoundingClientRect().bottom ?? rect.bottom;
+      dropdown.style.top = `${headerBottom + 8}px`;
+      dropdown.style.left = '12px';
+      dropdown.style.right = '12px';
+      dropdown.style.width = 'auto';
+    } else {
+      dropdown.style.top = `${rect.bottom + 8}px`;
+      dropdown.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+      dropdown.style.left = 'auto';
+      dropdown.style.width = '';
+    }
   };
 
   const close = () => {
     dropdown.setAttribute('hidden', '');
     dropdown.style.display = 'none';
     bell.setAttribute('aria-expanded', 'false');
+    wrap.classList.remove('is-open');
   };
 
   const open = () => {
+    if (isMobileNav()) {
+      document.getElementById('main-nav')?.classList.remove('open');
+    }
     positionDropdown();
     dropdown.removeAttribute('hidden');
     dropdown.style.display = 'flex';
     bell.setAttribute('aria-expanded', 'true');
+    if (isMobileNav()) wrap.classList.add('is-open');
     if (csrf) {
       const fd = new FormData();
       fd.append('csrfmiddlewaretoken', csrf);
