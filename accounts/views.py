@@ -28,7 +28,7 @@ def staff_required(view_func):
     @login_required
     def wrapper(request, *args, **kwargs):
         if not request.user.is_staff:
-            messages.error(request, 'Доступ только для администраторов. Войдите: admin / admin123')
+            messages.error(request, 'Доступ только для администраторов.')
             return redirect('accounts:login')
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -45,6 +45,9 @@ def register_view(request):
             login(request, user)
             log_action(user, 'register', 'user', user.pk, request)
             messages.success(request, 'Регистрация успешна!')
+            next_url = request.GET.get('next') or request.POST.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
             return redirect('accounts:profile')
     else:
         form = RegisterForm()

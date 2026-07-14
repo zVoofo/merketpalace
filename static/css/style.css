@@ -1026,3 +1026,29 @@ a:hover{color:var(--link-hover);text-decoration:underline}
   .wallet-hero__icon{display:none}
   .profile-verify__grid{grid-template-columns:1fr}
 }
+
+/* --- Вход / регистрация --- */
+.auth-page{min-height:calc(100vh - 120px);display:flex;align-items:center;justify-content:center;padding:48px 16px}
+.auth-card{width:100%;max-width:440px;background:var(--card);border:1px solid var(--border-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 32px}
+.auth-card__title{margin:0 0 6px;font-size:1.55rem;font-weight:800;text-align:center}
+.auth-card__lead{margin:0 0 24px;text-align:center;color:var(--muted);font-size:.92rem}
+.auth-card__footer{margin:20px 0 0;text-align:center;font-size:.9rem;color:var(--muted)}
+.auth-social{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.auth-social__row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.auth-social__btn{display:flex;align-items:center;justify-content:center;padding:11px 16px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;color:#fff;text-decoration:none;transition:opacity .15s}
+.auth-social__btn:hover{opacity:.9}
+.auth-social__btn--vk{background:#0077ff}
+.auth-social__btn--google{background:#ea4335}
+.auth-social__btn--apple{background:#111}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:.82rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border-light)}
+.auth-form__submit{width:100%;margin-top:4px}
+
+/* --- Умные рекомендации на главной --- */
+.ai-recs{margin:0 0 40px;padding:24px;background:linear-gradient(135deg,var(--primary-light) 0%,var(--card) 55%);border:1px solid var(--border-light);border-radius:var(--radius);box-shadow:var(--shadow)}
+.ai-recs__head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.ai-recs__title{margin:0 0 6px;font-size:1.25rem;font-weight:800}
+.ai-recs__lead{margin:0;color:var(--muted);font-size:.9rem;max-width:640px}
+.ai-recs__badge{padding:6px 12px;border-radius:99px;background:var(--card);border:1px solid var(--border);font-size:.78rem;font-weight:700;color:var(--primary);white-space:nowrap}
+.card--rec{border-color:var(--primary-light)}
+.card__rec-badge{position:absolute;top:10px;left:10px;z-index:2;padding:4px 8px;border-radius:99px;background:rgba(255,255,255,.92);color:var(--primary);font-size:.72rem;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.08)}

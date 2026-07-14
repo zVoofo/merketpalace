@@ -25,11 +25,24 @@ def _catalog_without(get_params, *keys):
 
 def home(request):
     from listings.models import Listing
-    listings = Listing.objects.filter(status='active').select_related('category').prefetch_related('images')[:12]
+    from .recommendations import get_personal_recommendations
+
+    recommended, search_topics = [], []
+    if request.user.is_authenticated:
+        recommended, search_topics = get_personal_recommendations(request.user)
+
+    listings = Listing.objects.filter(status='active').select_related('category').prefetch_related('images')
+    if recommended:
+        exclude_ids = [item.pk for item in recommended]
+        listings = listings.exclude(pk__in=exclude_ids)
+    listings = listings[:12]
+
     categories = Category.objects.filter(parent__isnull=True, is_active=True).prefetch_related('children')
     return render(request, 'home/index.html', {
         'title': 'Главная — MarketPlace',
         'listings': listings,
+        'recommended': recommended,
+        'search_topics': search_topics,
         'categories': categories,
     })
 

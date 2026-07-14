@@ -1,32 +1,35 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Вход</h1>
-    <div class="form">
-        <div class="social-login" style="margin-bottom:20px">
-            <p style="margin-bottom:10px;color:var(--muted);font-size:.9rem">Войти через соцсети:</p>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <a href="{% url 'accounts:social_login' 'vk' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="btn btn--sm" style="background:#0077ff">Войти через VK</a>
-                <a href="{% url 'accounts:social_login' 'google' %}" class="btn btn--sm" style="background:#ea4335">Google</a>
-                <a href="{% url 'accounts:social_login' 'apple' %}" class="btn btn--sm" style="background:#000">Apple</a>
+<div class="auth-page">
+    <div class="auth-card">
+        <h1 class="auth-card__title">Вход</h1>
+        <p class="auth-card__lead">Добро пожаловать в MarketPlace</p>
+
+        <div class="auth-social">
+            <a href="{% url 'accounts:social_login' 'vk' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="auth-social__btn auth-social__btn--vk">Войти через VK</a>
+            <div class="auth-social__row">
+                <a href="{% url 'accounts:social_login' 'google' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="auth-social__btn auth-social__btn--google">Google</a>
+                <a href="{% url 'accounts:social_login' 'apple' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="auth-social__btn auth-social__btn--apple">Apple</a>
             </div>
         </div>
-        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
-        <form method="POST">
+
+        <div class="auth-divider"><span>или по email</span></div>
+
+        <form method="POST" class="auth-form">
             {% csrf_token %}
             {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
             {% for field in form %}
                 <div class="form__group">
                     <label>{{ field.label }}</label>
                     {{ field }}
-                    {% if field.errors %}<div style="color:var(--error);font-size:.85rem">{{ field.errors.0 }}</div>{% endif %}
+                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn" style="width:100%">Войти</button>
+            <button type="submit" class="btn auth-form__submit">Войти</button>
         </form>
-        <p style="margin-top:16px;text-align:center">Нет аккаунта? <a href="{% url 'accounts:register' %}">Зарегистрироваться</a></p>
-        <p style="margin-top:8px;text-align:center;font-size:.8rem;color:var(--muted)">Админ: admin / admin123</p>
+
+        <p class="auth-card__footer">Нет аккаунта? <a href="{% url 'accounts:register' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Зарегистрироваться</a></p>
     </div>
 </div>
 {% endblock %}

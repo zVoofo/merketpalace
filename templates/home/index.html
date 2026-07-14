@@ -11,6 +11,36 @@
 </section>
 
 <div class="container">
+    {% if recommended %}
+    <section class="ai-recs">
+        <div class="ai-recs__head">
+            <div>
+                <h2 class="ai-recs__title">✨ Рекомендации для вас</h2>
+                <p class="ai-recs__lead">Подобрано по вашим частым поискам{% if search_topics %}: {% for t in search_topics %}{{ t }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</p>
+            </div>
+            <span class="ai-recs__badge">Умный подбор</span>
+        </div>
+        <div class="grid">
+            {% for item in recommended %}
+                <a href="{% url 'listings:detail' item.slug %}" class="card card--rec">
+                    <div class="card__img-wrap">
+                        {% if item.old_price and item.old_price > item.price %}<span class="card__sale">−{{ item.discount_pct }}%</span>{% endif %}
+                        <span class="card__rec-badge">Для вас</span>
+                        <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                    </div>
+                    <div class="card__body">
+                        <div class="card__title">{{ item.title }}</div>
+                        <div>
+                            <span class="card__price">{{ item.price|floatformat:0 }} ₽</span>
+                            {% if item.old_price %}<span class="card__old">{{ item.old_price|floatformat:0 }} ₽</span>{% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <h2 style="margin-bottom:16px">Категории</h2>
     <div class="cats">
         {% for cat in categories %}
@@ -21,7 +51,7 @@
         {% endfor %}
     </div>
 
-    <h2 style="margin-bottom:16px">Популярные объявления</h2>
+    <h2 style="margin-bottom:16px">{% if recommended %}Другие популярные объявления{% else %}Популярные объявления{% endif %}</h2>
     <div class="grid">
         {% for item in listings %}
             <a href="{% url 'listings:detail' item.slug %}" class="card">
@@ -37,7 +67,9 @@
                 </div>
             </a>
         {% empty %}
-            <p style="grid-column:1/-1;text-align:center;color:var(--muted)">Нет объявлений. Запустите: <code>python manage.py seed</code></p>
+            {% if not recommended %}
+                <p style="grid-column:1/-1;text-align:center;color:var(--muted)">Нет объявлений. Запустите: <code>python manage.py seed</code></p>
+            {% endif %}
         {% endfor %}
     </div>
 </div>

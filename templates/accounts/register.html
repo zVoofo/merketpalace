@@ -1,21 +1,25 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Регистрация</h1>
-    <div class="form">
-        <form method="POST">
+<div class="auth-page">
+    <div class="auth-card">
+        <h1 class="auth-card__title">Регистрация</h1>
+        <p class="auth-card__lead">Создайте аккаунт для покупок и продаж</p>
+
+        <form method="POST" class="auth-form">
             {% csrf_token %}
+            {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
             {% for field in form %}
                 <div class="form__group">
                     <label>{{ field.label }}</label>
                     {{ field }}
-                    {% if field.errors %}<div style="color:var(--error);font-size:.85rem">{{ field.errors.0 }}</div>{% endif %}
+                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn" style="width:100%">Зарегистрироваться</button>
+            <button type="submit" class="btn auth-form__submit">Зарегистрироваться</button>
         </form>
-        <p style="margin-top:16px;text-align:center">Уже есть аккаунт? <a href="{% url 'accounts:login' %}">Войти</a></p>
+
+        <p class="auth-card__footer">Уже есть аккаунт? <a href="{% url 'accounts:login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Войти</a></p>
     </div>
 </div>
 {% endblock %}
