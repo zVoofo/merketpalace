@@ -1,10 +1,13 @@
-<nav class="hub-nav" aria-label="Личный кабинет">
-    <a href="{% url 'accounts:cabinet' %}"{% if hub_active == 'overview' %} class="is-active"{% endif %}>Обзор</a>
+<nav class="hub-nav" aria-label="Навигация">
     {% if user.active_role == 'seller' %}
+        <a href="{% url 'seller:dashboard' %}"{% if hub_active == 'dashboard' %} class="is-active"{% endif %}>Кабинет продавца</a>
         <a href="{% url 'seller:listings' %}"{% if hub_active == 'listings' %} class="is-active"{% endif %}>Объявления</a>
+    {% else %}
+        <a href="{% url 'accounts:profile' %}"{% if hub_active == 'profile' %} class="is-active"{% endif %}>Профиль</a>
     {% endif %}
-    <a href="{% url 'accounts:cabinet' %}?tab=requests"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
-        Заявки{% if requests_badge %} <span class="hub-nav__badge">{{ requests_badge }}</span>{% endif %}
+    <a href="{% url 'catalog:looking' %}"{% if hub_active == 'board' %} class="is-active"{% endif %}>Заявки</a>
+    <a href="{% url 'accounts:my_requests' %}"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
+        Мои заявки{% if requests_badge %} <span class="hub-nav__badge">{{ requests_badge }}</span>{% endif %}
     </a>
     {% if user.active_role == 'seller' %}
         <a href="{% url 'seller:reviews' %}"{% if hub_active == 'reviews' %} class="is-active"{% endif %}>Отзывы</a>

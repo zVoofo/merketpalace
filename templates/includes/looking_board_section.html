@@ -56,7 +56,7 @@
                         <p class="looking-request__hint">Создайте <a href="{% url 'listings:create' %}">объявление</a>, чтобы откликнуться</p>
                     {% endif %}
                 {% else %}
-                    <p class="looking-request__hint">Переключитесь в <a href="{% url 'accounts:cabinet' %}">режим продавца</a>, чтобы откликнуться</p>
+                    <p class="looking-request__hint">Переключитесь в <a href="{% url 'accounts:profile' %}">режим продавца</a>, чтобы откликнуться</p>
                 {% endif %}
             {% else %}
                 <p class="looking-request__hint"><a href="{% url 'accounts:login' %}">Войдите</a>, чтобы предложить товар</p>

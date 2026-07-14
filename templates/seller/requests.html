@@ -4,9 +4,10 @@
 {% block content %}
 <div class="container">
     {% if buyer_requests_page %}
-        <p style="margin-bottom:12px"><a href="{% url 'accounts:profile' %}">← Профиль</a></p>
+        {% include 'includes/hub_nav.html' with hub_active='requests' requests_badge=incoming_count %}
+        {% include 'includes/hub_subnav.html' with hub_active='requests' %}
     {% else %}
-        {% include 'includes/cabinet_nav.html' with active='requests' requests_badge=incoming_count %}
+        {% include 'includes/hub_nav.html' with hub_active='requests' requests_badge=incoming_count %}
     {% endif %}
 
     <h1 style="margin-top:20px">Мои заявки</h1>

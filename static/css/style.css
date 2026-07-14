@@ -145,6 +145,13 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 .nav__wallet-icon{font-size:.9rem;line-height:1}
 .nav__wallet-sum{font-size:.78rem;white-space:nowrap}
 .nav__icon-link{position:relative;font-size:1rem;line-height:1;padding:2px 4px}
+.nav-dot{
+  position:absolute;top:0;right:0;width:9px;height:9px;border-radius:50%;
+  background:var(--error);border:2px solid var(--card);box-shadow:0 0 0 1px var(--error);
+  pointer-events:none;
+}
+.nav-notify__bell{position:relative}
+.nav-notify__bell .nav-dot{top:2px;right:0}
 .nav__profile{display:inline-flex;align-items:center;gap:5px;max-width:110px}
 .nav__profile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav__profile-img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0}

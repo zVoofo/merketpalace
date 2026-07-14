@@ -3,10 +3,10 @@ from .models import Notification
 
 
 LINK_ALIASES = {
-    '/seller/requests/#offers': lambda: reverse('accounts:cabinet') + '?tab=requests#offers',
-    '/seller/requests/': lambda: reverse('accounts:cabinet') + '?tab=requests',
-    '/seller/requests/#sent': lambda: reverse('accounts:cabinet') + '?tab=requests#sent',
-    '/accounts/my-requests/#offers': lambda: reverse('accounts:cabinet') + '?tab=requests#offers',
+    '/seller/requests/#offers': lambda: reverse('accounts:my_requests') + '#offers',
+    '/seller/requests/': lambda: reverse('accounts:my_requests'),
+    '/seller/requests/#sent': lambda: reverse('accounts:my_requests') + '#sent',
+    '/accounts/my-requests/#offers': lambda: reverse('accounts:my_requests') + '#offers',
 }
 
 
@@ -18,7 +18,7 @@ def normalize_notification_link(link: str) -> str:
         return LINK_ALIASES[link]()
     if link.startswith('/seller/requests') or link.startswith('/accounts/my-requests'):
         suffix = '#' + link.split('#', 1)[1] if '#' in link else ''
-        return reverse('accounts:cabinet') + '?tab=requests' + suffix
+        return reverse('accounts:my_requests') + suffix
     if link.startswith('/') and not link.startswith('//'):
         return link
     return reverse('home')

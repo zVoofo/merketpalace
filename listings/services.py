@@ -75,3 +75,97 @@ def get_seller_rating(user):
         seller=user, status=Review.Status.APPROVED,
     ).aggregate(avg=Avg('rating'), cnt=Count('id'))
     return agg['avg'], agg['cnt'] or 0
+
+
+# Сопутствующие запчасти: что обычно покупают вместе с этой деталью
+_PART_GROUPS = (
+    (('колодк', 'колодки'), ('диск', 'тормозн', 'суппорт', 'жидкост', 'колодк')),
+    (('фильтр',), ('масл', 'маслян', 'фильтр')),
+    (('свеч',), ('катуш', 'провод', 'зажиган', 'свеч')),
+    (('амортизатор', 'стойк'), ('опор', 'пружин', 'пыльник', 'амортизатор')),
+    (('ремень', 'грм'), ('ролик', 'натяж', 'помп', 'ремень')),
+    (('аккумулятор', 'акб'), ('клемм', 'провод', 'заряд')),
+    (('шин', 'покрыш'), ('диск', 'колпак', 'датчик')),
+)
+
+
+def _title_matches(title: str, keywords: tuple[str, ...]) -> bool:
+    t = title.lower()
+    return any(kw in t for kw in keywords)
+
+
+def _keyword_complements(listing, limit: int):
+    title = listing.title
+    related_keywords = []
+    for triggers, companions in _PART_GROUPS:
+        if _title_matches(title, triggers):
+            related_keywords.extend(companions)
+    if not related_keywords:
+        return []
+
+    seen = {listing.pk}
+    results = []
+    candidates = Listing.objects.filter(
+        status=Listing.Status.ACTIVE,
+    ).exclude(pk=listing.pk).prefetch_related('images', 'car_compat')
+
+    for item in candidates:
+        if item.pk in seen:
+            continue
+        if not _title_matches(item.title, tuple(related_keywords)):
+            continue
+        if listing.brand_id and item.brand_id == listing.brand_id:
+            score = 3
+        elif listing.category_id == item.category_id:
+            score = 2
+        else:
+            score = 1
+        results.append((score, item))
+        seen.add(item.pk)
+
+    results.sort(key=lambda x: (-x[0], -x[1].sales_count, -float(x[1].rating_avg or 0)))
+    return [item for _, item in results[:limit]]
+
+
+def get_complementary_listings(listing, limit: int = 6):
+    """Сопутствующие товары: co-purchase + правила для запчастей + совместимость по авто."""
+    seen = {listing.pk}
+    scored = []
+
+    order_ids = OrderItem.objects.filter(
+        listing=listing,
+        order__status__in=COMPLETED_STATUSES,
+    ).values_list('order_id', flat=True).distinct()
+
+    if order_ids:
+        bought_together = (
+            OrderItem.objects.filter(order_id__in=order_ids)
+            .exclude(listing_id=listing.pk)
+            .values('listing_id')
+            .annotate(freq=Count('id'))
+            .order_by('-freq')[:limit * 2]
+        )
+        ids = [row['listing_id'] for row in bought_together]
+        for item in Listing.objects.filter(
+            pk__in=ids, status=Listing.Status.ACTIVE,
+        ).prefetch_related('images'):
+            if item.pk not in seen:
+                scored.append((100, item))
+                seen.add(item.pk)
+
+    for item in _keyword_complements(listing, limit):
+        if item.pk not in seen:
+            scored.append((50, item))
+            seen.add(item.pk)
+
+    make_ids = list(listing.car_compat.values_list('make_id', flat=True))
+    if make_ids and len(scored) < limit:
+        for item in Listing.objects.filter(
+            status=Listing.Status.ACTIVE,
+            car_compat__make_id__in=make_ids,
+        ).exclude(pk__in=seen).prefetch_related('images').distinct()[:limit]:
+            scored.append((30, item))
+            seen.add(item.pk)
+
+    scored.sort(key=lambda x: -x[0])
+    return [item for _, item in scored[:limit]]

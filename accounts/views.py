@@ -19,7 +19,6 @@ from .middleware import log_action
 from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
 from listings.services import get_seller_rating
-from catalog.views import looking_board_context
 from listings.views import looking_requests_context
 
 
@@ -45,7 +44,7 @@ def register_view(request):
             login(request, user)
             log_action(user, 'register', 'user', user.pk, request)
             messages.success(request, 'Регистрация успешна!')
-            return redirect('accounts:cabinet')
+            return redirect('accounts:profile')
     else:
         form = RegisterForm()
     return render(request, 'accounts/register.html', {'form': form, 'title': 'Регистрация'})
@@ -146,44 +145,10 @@ def public_profile_view(request, username):
 
 @login_required
 def profile_view(request):
-    """Старый URL — перенаправление в единый кабинет."""
-    suffix = '?tab=settings' if request.GET.get('edit') == '1' else ''
-    return redirect(reverse('accounts:cabinet') + suffix)
-
-
-def _cabinet_redirect(tab='overview', anchor=''):
-    url = reverse('accounts:cabinet')
-    if tab != 'overview':
-        url += f'?tab={tab}'
-    if anchor:
-        url += f'#{anchor}'
-    return url
-
-
-def _seller_stats(user):
-    listings = Listing.objects.filter(user=user)
-    orders_count = user.sales_received.count() if hasattr(user, 'sales_received') else 0
-    rating_avg, rating_count = get_seller_rating(user)
-    return {
-        'listings_count': listings.count(),
-        'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
-        'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
-        'orders_count': orders_count,
-        'rating_avg': rating_avg,
-        'rating_count': rating_count,
-    }
-
-
-@login_required
-def cabinet_view(request):
-    """Единый личный кабинет: профиль, заявки, доска."""
     org = getattr(request.user, 'organization', None)
     wallet = get_wallet(request.user)
     verify_form = VerifyCodeForm()
-    tab = request.GET.get('tab', 'overview')
-    if tab not in ('overview', 'requests', 'board', 'settings'):
-        tab = 'overview'
-    edit_mode = request.GET.get('edit') == '1' or tab == 'settings'
+    edit_mode = request.GET.get('edit') == '1'
     form = None
     org_form = None
 
@@ -193,7 +158,7 @@ def cabinet_view(request):
             request.user.active_role = role
             request.user.save(update_fields=['active_role'])
             messages.success(request, f'Режим: {"Продавец" if role == "seller" else "Покупатель"}')
-            return redirect(_cabinet_redirect(tab))
+            return redirect('accounts:profile')
 
         if 'send_email_code' in request.POST:
             email = request.POST.get('email') or request.user.email
@@ -208,7 +173,7 @@ def cabinet_view(request):
                     messages.success(request, msg)
                 except Exception as e:
                     messages.error(request, f'Не удалось отправить email: {e}')
-            return redirect(_cabinet_redirect('settings'))
+            return redirect('accounts:profile')
 
         if 'verify_email' in request.POST:
             verify_form = VerifyCodeForm(request.POST)
@@ -218,7 +183,7 @@ def cabinet_view(request):
                     messages.success(request, 'Email подтверждён!')
                 else:
                     messages.error(request, 'Неверный или просроченный код')
-            return redirect(_cabinet_redirect('settings'))
+            return redirect('accounts:profile')
 
         if 'send_phone_code' in request.POST:
             phone = request.POST.get('phone') or request.user.phone
@@ -230,7 +195,7 @@ def cabinet_view(request):
                 if settings.DEBUG:
                     msg += f' (тест: {code})'
                 messages.success(request, msg)
-            return redirect(_cabinet_redirect('settings'))
+            return redirect('accounts:profile')
 
         if 'verify_phone' in request.POST:
             verify_form = VerifyCodeForm(request.POST)
@@ -240,7 +205,7 @@ def cabinet_view(request):
                     messages.success(request, 'Телефон подтверждён!')
                 else:
                     messages.error(request, 'Неверный или просроченный код')
-            return redirect(_cabinet_redirect('settings'))
+            return redirect('accounts:profile')
 
         if 'save_profile' in request.POST:
             form = ProfileForm(request.POST, request.FILES, instance=request.user)
@@ -248,7 +213,6 @@ def cabinet_view(request):
             profile_ok = form.is_valid()
             org_ok = org_form.is_valid()
             edit_mode = True
-            tab = 'settings'
             if profile_ok:
                 form.save()
             if org_ok:
@@ -259,52 +223,53 @@ def cabinet_view(request):
                     org_obj.save()
             if profile_ok:
                 messages.success(request, 'Профиль обновлён')
-                return redirect(_cabinet_redirect('overview'))
+                return redirect('accounts:profile')
             for field, errors in form.errors.items():
                 for err in errors:
                     messages.error(request, f'{field}: {err}')
-            # fall through — render settings with errors
-        else:
-            return redirect(_cabinet_redirect(tab))
 
     if form is None:
         form = ProfileForm(instance=request.user)
         org_form = OrganizationForm(instance=org)
 
-    requests_ctx = looking_requests_context(request.user)
-    incoming_count = requests_ctx.get('incoming_count', 0)
+    rating_avg, rating_count = get_seller_rating(request.user)
+    looking_incoming_count = SearchRequest.objects.filter(
+        user=request.user,
+        status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
+        response_seen=False,
+    ).count()
 
-    hub_active = tab if tab in ('overview', 'requests', 'board') else 'overview'
-    if tab == 'board':
-        hub_active = 'requests'
-
-    ctx = {
-        'title': 'Личный кабинет',
-        'tab': tab,
-        'hub_active': hub_active,
-        'requests_badge': incoming_count,
+    return render(request, 'accounts/profile.html', {
+        'title': 'Профиль',
         'form': form,
         'org_form': org_form,
         'wallet': wallet,
         'verify_form': verify_form,
         'org': org,
         'edit_mode': edit_mode,
-        'incoming_count': incoming_count,
-        **requests_ctx,
-    }
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
+        'looking_incoming_count': looking_incoming_count,
+    })
 
-    if request.user.active_role == 'seller':
-        ctx.update(_seller_stats(request.user))
 
-    if tab == 'board':
-        ctx.update(looking_board_context(request))
-
-    return render(request, 'accounts/cabinet.html', ctx)
+@login_required
+def cabinet_view(request):
+    """Старый URL — перенаправление в профиль."""
+    return redirect('accounts:profile')
 
 
 @login_required
 def my_requests_view(request):
-    return redirect(reverse('accounts:cabinet') + '?tab=requests')
+    ctx = looking_requests_context(request.user)
+    return render(request, 'seller/requests.html', {
+        'title': 'Мои заявки',
+        'hub_active': 'requests',
+        'requests_badge': ctx.get('incoming_count', 0),
+        'buyer_requests_page': True,
+        **ctx,
+    })
 
 
 @login_required

@@ -38,7 +38,7 @@
         </div>
 
         {% if is_own %}
-            <p style="margin-bottom:20px"><a href="{% url 'accounts:cabinet' %}?tab=settings" class="btn btn--outline btn--sm">Редактировать профиль</a></p>
+            <p style="margin-bottom:20px"><a href="{% url 'accounts:profile' %}?edit=1" class="btn btn--outline btn--sm">Редактировать профиль</a></p>
         {% endif %}
 
         {% if listings %}

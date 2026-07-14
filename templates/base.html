@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=23">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=24">
 </head>
 <body>
 <header class="header">
@@ -21,7 +21,10 @@
         <nav class="nav" id="main-nav">
             <a href="{% url 'catalog:index' %}">Каталог</a>
             {% if user.is_authenticated %}
-                <a href="{% url 'accounts:cabinet' %}">Кабинет</a>
+                <a href="{% url 'catalog:looking' %}">Заявки</a>
+                {% if user.active_role == 'seller' %}
+                    <a href="{% url 'seller:dashboard' %}">Продавец</a>
+                {% endif %}
             {% else %}
                 <a href="{% url 'catalog:looking' %}">Заявки</a>
             {% endif %}
@@ -32,12 +35,12 @@
                     <span class="nav__wallet-sum">{{ user.wallet_balance|floatformat:0 }}₽</span>
                 </a>
                 <a href="{% url 'cart' %}" class="nav__icon-link" title="Корзина">🛒{% if cart_count %}<span class="nav-mini">{{ cart_count }}</span>{% endif %}</a>
-                <a href="{% url 'chat:index' %}" class="nav__icon-link" title="Сообщения">💬{% if chat_unread_count %}<span class="nav-mini">{{ chat_unread_count }}</span>{% endif %}</a>
+                <a href="{% url 'chat:index' %}" class="nav__icon-link" title="Сообщения">💬{% if chat_unread_count %}<span class="nav-dot" aria-label="Новые сообщения"></span>{% endif %}</a>
 
                 <div class="nav-notify" id="nav-notify">
                     <button type="button" class="nav-notify__bell" id="notify-bell" aria-label="Уведомления" aria-expanded="false" aria-controls="notify-dropdown">
                         🔔
-                        {% if notification_count %}<span class="nav-badge" id="notify-badge">{{ notification_count }}</span>{% endif %}
+                        {% if notification_count %}<span class="nav-dot" id="notify-badge" aria-label="Новые уведомления"></span>{% endif %}
                     </button>
                     <div class="nav-notify__dropdown" id="notify-dropdown" hidden role="menu">
                         <div class="nav-notify__head">Уведомления</div>
@@ -63,7 +66,7 @@
                 {% endif %}
                 <a href="{% url 'orders:list' %}">Заказы</a>
                 <a href="{% url 'chat:support' %}">Поддержка</a>
-                <a href="{% url 'accounts:cabinet' %}" class="nav__profile" title="Кабинет">
+                <a href="{% url 'accounts:profile' %}" class="nav__profile" title="Профиль">
                     {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" class="nav__profile-img">{% endif %}
                     <span>{{ user.first_name|default:user.username }}</span>
                 </a>

@@ -2,11 +2,21 @@
 {% load static %}
 
 {% block content %}
-<div class="container looking-hub looking-hub--public">
+<div class="container looking-hub">
+    {% if user.is_authenticated %}
+        {% include 'includes/hub_nav.html' with hub_active='board' requests_badge=requests_badge %}
+    {% endif %}
+
     <header class="looking-hub__head">
         <div>
             <h1 class="page-title">Заявки покупателей</h1>
-            <p class="page-lead">Покупатели ищут товары. <a href="{% url 'accounts:login' %}">Войдите</a> как продавец, чтобы предложить своё объявление.</p>
+            {% if user.is_authenticated and user.active_role == 'seller' %}
+                <p class="page-lead">Покупатели ищут товары — предложите подходящее объявление из вашего каталога.</p>
+            {% elif user.is_authenticated %}
+                <p class="page-lead">Здесь запросы других покупателей. Переключитесь в <a href="{% url 'accounts:profile' %}">режим продавца</a>, чтобы откликнуться.</p>
+            {% else %}
+                <p class="page-lead">Покупатели ищут товары. <a href="{% url 'accounts:login' %}">Войдите</a> как продавец, чтобы предложить своё объявление.</p>
+            {% endif %}
         </div>
     </header>
 

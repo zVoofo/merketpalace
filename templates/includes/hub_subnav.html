@@ -1,12 +1,12 @@
 <nav class="hub-subnav" aria-label="Раздел заявок">
-    <a href="{% url 'accounts:cabinet' %}?tab=requests#offers"{% if tab == 'requests' %} class="is-active"{% endif %}>
+    <a href="{% url 'accounts:my_requests' %}#offers"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
         Отклики мне{% if incoming_count %} <span class="hub-subnav__count">{{ incoming_count }}</span>{% endif %}
     </a>
-    <a href="{% url 'accounts:cabinet' %}?tab=requests#my-searches"{% if tab == 'requests' %} class="is-active"{% endif %}>Я ищу</a>
+    <a href="{% url 'accounts:my_requests' %}#my-searches"{% if hub_active == 'requests' %} class="is-active"{% endif %}>Я ищу</a>
     {% if user.active_role == 'seller' %}
-        <a href="{% url 'accounts:cabinet' %}?tab=requests#sent"{% if tab == 'requests' %} class="is-active"{% endif %}>
+        <a href="{% url 'accounts:my_requests' %}#sent"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
             Мои предложения{% if sent_count %} <span class="hub-subnav__count">{{ sent_count }}</span>{% endif %}
         </a>
-        <a href="{% url 'accounts:cabinet' %}?tab=board"{% if tab == 'board' %} class="is-active"{% endif %}>Доска покупателей</a>
+        <a href="{% url 'catalog:looking' %}"{% if hub_active == 'board' %} class="is-active"{% endif %}>Доска покупателей</a>
     {% endif %}
 </nav>

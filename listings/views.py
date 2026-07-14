@@ -7,7 +7,7 @@ from orders.models import OrderItem
 from catalog.models import Category, Brand, SearchRequest
 from .models import Listing, ModerationQueue, Review
 from .forms import ListingForm, ReviewForm, validate_media_files, MAX_REVIEW_MEDIA
-from .services import save_listing_media, save_review_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating
+from .services import save_listing_media, save_review_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating, get_complementary_listings
 from .moderation import schedule_auto_moderation
 
 
@@ -29,9 +29,7 @@ def listing_detail(request, slug):
             raise Http404
     listing.views_count += 1
     listing.save(update_fields=['views_count'])
-    similar = Listing.objects.filter(
-        category=listing.category, status=Listing.Status.ACTIVE
-    ).exclude(pk=listing.pk).prefetch_related('images')[:6]
+    complements = get_complementary_listings(listing, limit=6)
     reviews = listing.reviews.filter(
         status=Review.Status.APPROVED,
     ).select_related('reviewer').prefetch_related('media')
@@ -45,7 +43,7 @@ def listing_detail(request, slug):
     return render(request, 'listings/show.html', {
         'title': listing.title,
         'listing': listing,
-        'similar': similar,
+        'complements': complements,
         'reviews': reviews,
         'review_form': review_form,
         'can_review': can_review,
@@ -172,8 +170,26 @@ def review_create(request, slug):
 
 @login_required
 def seller_dashboard(request):
-    from django.urls import reverse
-    return redirect(reverse('accounts:cabinet'))
+    from django.db.models import Sum
+    listings = Listing.objects.filter(user=request.user)
+    rating_avg, rating_count = get_seller_rating(request.user)
+    total_views = listings.aggregate(s=Sum('views_count'))['s'] or 0
+    incoming_count = SearchRequest.objects.filter(
+        user=request.user,
+        status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
+    ).count()
+    return render(request, 'seller/dashboard.html', {
+        'title': 'Кабинет продавца',
+        'incoming_count': incoming_count,
+        'total_views': total_views,
+        'listings_count': listings.count(),
+        'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
+        'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
+        'orders_count': request.user.sales_received.count() if hasattr(request.user, 'sales_received') else 0,
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
+    })
 
 
 def looking_requests_context(user):
@@ -236,8 +252,7 @@ def seller_reviews(request):
 
 @login_required
 def seller_looking_requests(request):
-    from django.urls import reverse
-    return redirect(reverse('accounts:cabinet') + '?tab=requests')
+    return redirect('accounts:my_requests')
 
 
 @login_required

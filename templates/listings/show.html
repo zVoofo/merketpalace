@@ -71,10 +71,11 @@
             <div style="margin-top:24px"><h3>Описание</h3><p>{{ listing.description|linebreaks|default:"Нет описания" }}</p></div>
         </div>
     </div>
-    {% if similar %}
-        <h2 class="section-title">Похожие</h2>
+    {% if complements %}
+        <h2 class="section-title">С этим товаром покупают</h2>
+        <p class="section-hint">Сопутствующие запчасти и расходники — то, что часто берут вместе</p>
         <div class="grid">
-            {% for item in similar %}
+            {% for item in complements %}
                 <a href="{% url 'listings:detail' item.slug %}" class="card">
                     <div class="card__img-wrap">
                         <img class="card__img" src="{% listing_image_url item %}" alt="" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">

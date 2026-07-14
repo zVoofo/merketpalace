@@ -220,7 +220,7 @@ def search_request_view(request):
     )
     messages.success(request, 'Заявка на поиск отправлена!')
     if request.user.is_authenticated:
-        return redirect(reverse('accounts:cabinet') + '?tab=requests')
+        return redirect(reverse('accounts:my_requests'))
     return redirect('catalog:looking')
 
 
@@ -289,13 +289,16 @@ def looking_board_context(request):
 
 
 def looking_board(request):
-    """Публичная доска — для гостей; авторизованных ведём в кабинет."""
+    ctx = looking_board_context(request)
+    incoming_count = 0
     if request.user.is_authenticated:
-        from django.urls import reverse
-        return redirect(reverse('accounts:cabinet') + '?tab=board')
+        from listings.views import looking_requests_context
+        incoming_count = looking_requests_context(request.user).get('incoming_count', 0)
     return render(request, 'catalog/looking.html', {
         'title': 'Заявки покупателей',
-        **looking_board_context(request),
+        'hub_active': 'board',
+        'requests_badge': incoming_count,
+        **ctx,
     })
 
 
@@ -307,20 +310,20 @@ def respond_to_search(request, pk):
     sr = get_object_or_404(SearchRequest, pk=pk)
     if sr.user_id == request.user.id:
         messages.error(request, 'Нельзя предложить товар на свою же заявку')
-        return redirect(reverse('accounts:cabinet') + '?tab=board')
+        return redirect('catalog:looking')
     if sr.status not in (SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS):
         messages.error(request, 'На эту заявку уже есть отклик')
-        return redirect(reverse('accounts:cabinet') + '?tab=board')
+        return redirect('catalog:looking')
     listing_id = request.POST.get('listing_id')
     if not listing_id or not str(listing_id).isdigit():
         messages.error(request, 'Выберите объявление')
-        return redirect(reverse('accounts:cabinet') + '?tab=board')
+        return redirect('catalog:looking')
     listing = Listing.objects.filter(
         pk=int(listing_id), user=request.user, status=Listing.Status.ACTIVE,
     ).first()
     if not listing:
         messages.error(request, 'Объявление не найдено или снято с публикации')
-        return redirect(reverse('accounts:cabinet') + '?tab=board')
+        return redirect('catalog:looking')
     sr.matched_listing = listing
     sr.matched_seller = request.user
     sr.status = SearchRequest.Status.FOUND
@@ -339,7 +342,7 @@ def respond_to_search(request, pk):
         except Exception:
             pass
     messages.success(request, f'Вы предложили «{listing.title}» на заявку «{sr.query}»')
-    return redirect(reverse('accounts:cabinet') + '?tab=board#board')
+    return redirect(reverse('catalog:looking') + '#board')
 
 
 @login_required
@@ -350,7 +353,7 @@ def decline_search_offer(request, pk):
     seller = sr.matched_seller or (sr.matched_listing.user if sr.matched_listing else None)
     if not sr.matched_listing or not seller:
         messages.error(request, 'Нет активного предложения для отклонения')
-        return redirect(reverse('accounts:cabinet') + '?tab=requests#offers')
+        return redirect(reverse('accounts:my_requests') + '#offers')
 
     listing_title = sr.matched_listing.title
     query = sr.query
@@ -370,7 +373,7 @@ def decline_search_offer(request, pk):
     )
 
     messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам.')
-    return redirect(reverse('accounts:cabinet') + '?tab=requests#offers')
+    return redirect(reverse('accounts:my_requests') + '#offers')
 
 
 @login_required
@@ -385,7 +388,7 @@ def withdraw_search_offer(request, pk):
     )
     if not sr.matched_listing:
         messages.error(request, 'Нет активного предложения')
-        return redirect(reverse('accounts:cabinet') + '?tab=requests#sent')
+        return redirect(reverse('accounts:my_requests') + '#sent')
 
     listing_title = sr.matched_listing.title
     buyer = sr.user
@@ -407,7 +410,7 @@ def withdraw_search_offer(request, pk):
         )
 
     messages.success(request, 'Предложение отозвано. Заявка снова в общем списке.')
-    return redirect(reverse('accounts:cabinet') + '?tab=requests#sent')
+    return redirect(reverse('accounts:my_requests') + '#sent')
 
 
 def search_preview(request):
