@@ -1,17 +1,9 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static listing_extras %}
 
 {% block content %}
 <div class="container profile-page">
     <h1 class="profile-page__title">Профиль</h1>
-
-    {% if looking_incoming_count %}
-        <p class="profile-looking-banner">
-            <a href="{% url 'accounts:my_requests' %}#offers" class="btn btn--sm">
-                🔔 {{ looking_incoming_count }} отклик{{ looking_incoming_count|pluralize:"ов" }} — Мои заявки
-            </a>
-        </p>
-    {% endif %}
 
     <a href="{% url 'accounts:wallet' %}" class="wallet-card wallet-card--profile">
         <div class="wallet-card__left">
@@ -33,6 +25,15 @@
         </div>
         <a href="{% url 'seller:reviews' %}" class="btn btn--sm btn--outline">Все отзывы →</a>
     </div>
+
+    {% if user.active_role == 'seller' %}
+    <div class="profile-seller-links">
+        <a href="{% url 'seller:dashboard' %}" class="btn btn--outline btn--sm">Кабинет продавца</a>
+        <a href="{% url 'seller:listings' %}" class="btn btn--outline btn--sm">Мои объявления</a>
+        <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent">+ Объявление</a>
+        <a href="{% url 'catalog:looking' %}" class="btn btn--outline btn--sm">Заявки покупателей</a>
+    </div>
+    {% endif %}
 
     <div class="profile-view" id="profile-view">
         <div class="profile-card profile-card--view">
@@ -111,6 +112,22 @@
             </div>
         </div>
     </div>
+
+    <section class="profile-requests" id="profile-requests">
+        <h2 class="section-title">Мои заявки «Ищу»</h2>
+        {% include 'includes/cabinet_requests_section.html' %}
+    </section>
+
+    {% if user.active_role == 'seller' and search_requests %}
+    <section class="profile-board" id="profile-board">
+        <h2 class="section-title">Откликнуться на заявки</h2>
+        <p class="section-hint">Или откройте полную <a href="{% url 'catalog:looking' %}">доску заявок</a></p>
+        {% include 'includes/looking_board_section.html' %}
+    </section>
+    {% if seller_listings_payload %}
+        {{ seller_listings_payload|json_script:"seller-listings-data" }}
+    {% endif %}
+    {% endif %}
 
     <div class="profile-edit form form--wide{% if edit_mode %} profile-edit--open{% endif %}" id="profile-edit"{% if not edit_mode %} hidden{% endif %}>
         <div class="profile-edit__head">

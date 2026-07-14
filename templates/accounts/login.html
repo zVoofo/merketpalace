@@ -7,7 +7,7 @@
         <div class="social-login" style="margin-bottom:20px">
             <p style="margin-bottom:10px;color:var(--muted);font-size:.9rem">Войти через соцсети:</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <a href="{% url 'accounts:social_login' 'vk' %}" class="btn btn--sm" style="background:#0077ff">VK</a>
+                <a href="{% url 'accounts:social_login' 'vk' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="btn btn--sm" style="background:#0077ff">Войти через VK</a>
                 <a href="{% url 'accounts:social_login' 'google' %}" class="btn btn--sm" style="background:#ea4335">Google</a>
                 <a href="{% url 'accounts:social_login' 'apple' %}" class="btn btn--sm" style="background:#000">Apple</a>
             </div>

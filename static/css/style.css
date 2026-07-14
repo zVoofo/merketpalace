@@ -545,7 +545,8 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 }
 .hub-quick__link:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
 .cabinet-section{margin-bottom:32px}
-.profile-looking-banner{margin-bottom:20px}
+.profile-seller-links{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
+.profile-requests,.profile-board{margin-top:32px;padding-top:8px}
 .looking-widget__title{font-size:1.1rem;margin-bottom:14px;font-weight:700}
 .looking-widget__item{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
 .looking-widget__query{color:var(--muted);font-size:.85rem;margin-bottom:6px}

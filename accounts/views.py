@@ -16,10 +16,12 @@ from .wallet_service import get_wallet, deposit
 from .notifications import normalize_notification_link
 from .models import User, Organization, WalletTransaction, SocialAccount
 from .middleware import log_action
+from . import vk_oauth
 from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
 from listings.services import get_seller_rating
 from listings.views import looking_requests_context
+from catalog.views import looking_board_context
 
 
 def staff_required(view_func):
@@ -76,7 +78,7 @@ def logout_view(request):
 
 
 def social_login(request, provider):
-    """Демо-вход через соцсети (без реальных API-ключей)."""
+    """Вход через соцсети. VK — реальный OAuth при настроенных ключах."""
     provider = provider.lower()
     if provider not in ('vk', 'google', 'apple'):
         return redirect('accounts:login')
@@ -84,6 +86,17 @@ def social_login(request, provider):
     if request.user.is_authenticated:
         return redirect('home')
 
+    if provider == 'vk' and vk_oauth.vk_configured():
+        return vk_oauth_start(request)
+
+    if provider == 'vk':
+        messages.error(
+            request,
+            'Вход через VK ещё не настроен. Добавьте VK_APP_ID и VK_APP_SECRET в переменные окружения на сервере.',
+        )
+        return redirect('accounts:login')
+
+    # Демо для Google / Apple (без API-ключей)
     provider_id = request.session.get(f'social_{provider}_id')
     if not provider_id:
         import uuid
@@ -97,7 +110,7 @@ def social_login(request, provider):
             username=username,
             defaults={
                 'email': f'{username}@social.local',
-                'first_name': {'vk': 'VK', 'google': 'Google', 'apple': 'Apple'}.get(provider, provider),
+                'first_name': {'google': 'Google', 'apple': 'Apple'}.get(provider, provider),
             },
         )
         if created:
@@ -107,7 +120,102 @@ def social_login(request, provider):
         get_wallet(user)
 
     login(request, user)
-    messages.success(request, f'Вход через {provider.upper()} выполнен')
+    messages.success(request, f'Демо-вход через {provider.upper()} выполнен')
+    return redirect('home')
+
+
+def vk_oauth_start(request):
+    state = vk_oauth.new_oauth_state()
+    request.session['vk_oauth_state'] = state
+    next_url = request.GET.get('next', '')
+    if next_url and next_url.startswith('/'):
+        request.session['vk_oauth_next'] = next_url
+    redirect_uri = vk_oauth.vk_redirect_uri(request)
+    return redirect(vk_oauth.build_authorize_url(redirect_uri, state))
+
+
+def _login_or_create_vk_user(vk_user_id: str, email: str, profile: dict) -> User:
+    provider_id = str(vk_user_id)
+    social = SocialAccount.objects.filter(provider='vk', provider_id=provider_id).select_related('user').first()
+    if social:
+        return social.user
+
+    first = (profile.get('first_name') or '').strip() or 'VK'
+    last = (profile.get('last_name') or '').strip()
+    username = f'vk_{provider_id}'
+
+    user = None
+    if email:
+        user = User.objects.filter(email__iexact=email).first()
+
+    if not user:
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                'email': email or f'{username}@vk.social',
+                'first_name': first,
+                'last_name': last,
+            },
+        )
+        if created:
+            user.set_unusable_password()
+            if email:
+                user.email_verified = True
+            user.save()
+    else:
+        if not user.first_name and first:
+            user.first_name = first
+        if not user.last_name and last:
+            user.last_name = last
+        if email and not user.email_verified:
+            user.email_verified = True
+        user.save(update_fields=['first_name', 'last_name', 'email_verified'])
+
+    SocialAccount.objects.get_or_create(
+        provider='vk',
+        provider_id=provider_id,
+        defaults={'user': user},
+    )
+    get_wallet(user)
+    return user
+
+
+def vk_callback(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.GET.get('error'):
+        messages.error(request, 'Вход через VK отменён')
+        return redirect('accounts:login')
+
+    code = request.GET.get('code', '').strip()
+    state = request.GET.get('state', '').strip()
+    expected = request.session.pop('vk_oauth_state', '')
+    next_url = request.session.pop('vk_oauth_next', '')
+
+    if not code or not state or not expected or state != expected:
+        messages.error(request, 'Ошибка безопасности при входе через VK. Попробуйте снова.')
+        return redirect('accounts:login')
+
+    redirect_uri = vk_oauth.vk_redirect_uri(request)
+    try:
+        token_data = vk_oauth.exchange_code(code, redirect_uri)
+        vk_user_id = str(token_data.get('user_id', ''))
+        access_token = token_data.get('access_token', '')
+        email = (token_data.get('email') or '').strip()
+        if not vk_user_id or not access_token:
+            raise ValueError('VK не вернул данные пользователя')
+        profile = vk_oauth.fetch_profile(access_token, vk_user_id)
+        user = _login_or_create_vk_user(vk_user_id, email, profile)
+    except Exception as e:
+        messages.error(request, f'Не удалось войти через VK: {e}')
+        return redirect('accounts:login')
+
+    login(request, user)
+    log_action(user, 'login', 'user', user.pk, request, meta='vk')
+    messages.success(request, 'Вход через VK выполнен')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
     return redirect('home')
 
 
@@ -240,7 +348,7 @@ def profile_view(request):
         response_seen=False,
     ).count()
 
-    return render(request, 'accounts/profile.html', {
+    ctx = {
         'title': 'Профиль',
         'form': form,
         'org_form': org_form,
@@ -251,25 +359,22 @@ def profile_view(request):
         'rating_avg': rating_avg,
         'rating_count': rating_count,
         'looking_incoming_count': looking_incoming_count,
-    })
+        **looking_requests_context(request.user),
+    }
+    if request.user.active_role == 'seller':
+        ctx.update(looking_board_context(request))
+
+    return render(request, 'accounts/profile.html', ctx)
 
 
 @login_required
 def cabinet_view(request):
-    """Старый URL — перенаправление в профиль."""
     return redirect('accounts:profile')
 
 
 @login_required
 def my_requests_view(request):
-    ctx = looking_requests_context(request.user)
-    return render(request, 'seller/requests.html', {
-        'title': 'Мои заявки',
-        'hub_active': 'requests',
-        'requests_badge': ctx.get('incoming_count', 0),
-        'buyer_requests_page': True,
-        **ctx,
-    })
+    return redirect(reverse('accounts:profile') + '#offers')
 
 
 @login_required

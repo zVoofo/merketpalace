@@ -3,10 +3,6 @@
 
 {% block content %}
 <div class="container looking-hub">
-    {% if user.is_authenticated %}
-        {% include 'includes/hub_nav.html' with hub_active='board' requests_badge=requests_badge %}
-    {% endif %}
-
     <header class="looking-hub__head">
         <div>
             <h1 class="page-title">Заявки покупателей</h1>
@@ -22,4 +18,7 @@
 
     {% include 'includes/looking_board_section.html' %}
 </div>
+{% if seller_listings_payload %}
+    {{ seller_listings_payload|json_script:"seller-listings-data" }}
+{% endif %}
 {% endblock %}

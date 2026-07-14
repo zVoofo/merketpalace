@@ -159,6 +159,12 @@ LOGOUT_REDIRECT_URL = 'home'
 ITEMS_PER_PAGE = 20
 COMMISSION_RATE = 0.05
 
+# --- VK OAuth (https://vk.com/apps?act=manage → тип «Веб-сайт») ---
+VK_APP_ID = os.environ.get('VK_APP_ID', '')
+VK_APP_SECRET = os.environ.get('VK_APP_SECRET', '')
+# Необязательно: если пусто — строится автоматически из домена сайта
+VK_REDIRECT_URI = os.environ.get('VK_REDIRECT_URI', '')
+
 # --- Email (тестовый режим: письма в консоль) ---
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'noreply@marketplace.local'

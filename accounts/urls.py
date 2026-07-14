@@ -15,5 +15,6 @@ urlpatterns = [
     path('notifications/<int:pk>/open/', views.notification_open, name='notification_open'),
     path('notifications/<int:pk>/delete/', views.notifications_delete, name='notifications_delete'),
     path('wallet/', views.wallet_view, name='wallet'),
+    path('social/vk/callback/', views.vk_callback, name='vk_callback'),
     path('social/<str:provider>/', views.social_login, name='social_login'),
 ]
