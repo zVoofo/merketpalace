@@ -425,7 +425,10 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 .media-uploader__input{position:absolute;opacity:0;width:0;height:0}
 
 /* --- Профиль / Ищу --- */
-.looking-widget{margin-bottom:28px}
+.looking-offer-card{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
+.looking-hub-links{margin-bottom:34px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border-light)}
+.looking-hub-links__row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.profile-looking-banner{margin-bottom:20px}
 .looking-widget__title{font-size:1.1rem;margin-bottom:14px;font-weight:700}
 .looking-widget__item{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
 .looking-widget__query{color:var(--muted);font-size:.85rem;margin-bottom:6px}

@@ -1,34 +1,16 @@
 {% extends 'base.html' %}
-{% load static listing_extras %}
+{% load static %}
 
 {% block content %}
 <div class="container">
     <h1 style="margin-bottom:24px">Профиль</h1>
 
-    {% if looking_responses %}
-    <div id="looking-responses" class="looking-widget">
-        <h2 class="looking-widget__title">🔔 Отклики на ваши заявки «Ищу»</h2>
-        {% for sr in looking_responses %}
-            <div class="looking-widget__item">
-                <p class="looking-widget__query">Вы искали: «{{ sr.query }}»</p>
-                <p class="looking-widget__seller"><strong>{{ sr.matched_seller.first_name|default:sr.matched_seller.username }}</strong> предложил:</p>
-                <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
-                    <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
-                    <span>
-                        <strong>{{ sr.matched_listing.title }}</strong>
-                        <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
-                    </span>
-                </a>
-                <div class="looking-widget__actions">
-                    <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
-                    <form method="POST" action="{% url 'catalog:decline_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отклонить это предложение? Заявка снова появится в «Ищу».')">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Не подходит</button>
-                    </form>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
+    {% if looking_incoming_count %}
+        <p class="profile-looking-banner">
+            <a href="{% url 'catalog:looking' %}#my-requests" class="btn btn--sm">
+                🔔 {{ looking_incoming_count }} отклик{{ looking_incoming_count|pluralize:"ов" }} на ваши заявки «Ищу»
+            </a>
+        </p>
     {% endif %}
 
     <div class="form form--wide">

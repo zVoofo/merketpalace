@@ -1,35 +1,39 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Кабинет продавца</h1>
-    <div class="stats">
-        <div class="stat"><div class="stat__num">{{ listings_count }}</div><div class="stat__label">Объявлений</div></div>
-        <div class="stat"><div class="stat__num">{{ active_count }}</div><div class="stat__label">Активных</div></div>
-        <div class="stat"><div class="stat__num">{{ total_views }}</div><div class="stat__label">Просмотров</div></div>
-        <div class="stat"><div class="stat__num">{{ orders_count }}</div><div class="stat__label">Заказов</div></div>
-    </div>
-    <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>
-    <a href="{% url 'seller:listings' %}" class="btn btn--outline" style="margin-left:8px">Мои объявления</a>
-    <a href="{% url 'catalog:looking' %}" class="btn btn--outline" style="margin-left:8px">Ищу</a>
-
-    {% if my_looking %}
-    <h2 class="section-title">Мои заявки «Ищу»</h2>
-    {% for sr in my_looking %}
-        <div class="looking-card looking-card--mine" style="margin-bottom:12px">
-            <strong>{{ sr.query }}</strong>
-            <span class="status-badge status-badge--{{ sr.status }}" style="margin-left:8px">{{ sr.get_status_display }}</span>
-            {% if sr.matched_listing %}
-                <p class="looking-card__match" style="margin-top:8px">Отклик: <a href="{% url 'listings:detail' sr.matched_listing.slug %}">{{ sr.matched_listing.title }}</a></p>
-            {% endif %}
-        </div>
-    {% endfor %}
-    <p><a href="{% url 'catalog:looking' %}">Все мои заявки →</a></p>
-    {% endif %}
-
-    <h2 class="section-title">Что искали, но не нашли</h2>
-    <table class="table">
-        {% for s in failed_searches %}<tr><td>{{ s.query }}</td><td>{{ s.cnt }}</td></tr>{% empty %}<tr><td colspan="2">Нет данных</td></tr>{% endfor %}
-    </table>
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Кабинет продавца</h1>
+    <div class="stats">
+        <div class="stat"><div class="stat__num">{{ listings_count }}</div><div class="stat__label">Объявлений</div></div>
+        <div class="stat"><div class="stat__num">{{ active_count }}</div><div class="stat__label">Активных</div></div>
+        <div class="stat"><div class="stat__num">{{ archived_count }}</div><div class="stat__label">В архиве</div></div>
+        <div class="stat"><div class="stat__num">{{ total_views }}</div><div class="stat__label">Просмотров</div></div>
+        <div class="stat"><div class="stat__num">{{ orders_count }}</div><div class="stat__label">Заказов</div></div>
+    </div>
+    <div class="seller-actions" style="margin-bottom:24px">
+        <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>
+        <a href="{% url 'seller:listings' %}" class="btn btn--outline" style="margin-left:8px">Мои объявления</a>
+        {% if archived_count %}<a href="{% url 'seller:listings' %}#archive" class="btn btn--outline" style="margin-left:8px">Архив ({{ archived_count }})</a>{% endif %}
+    </div>
+
+    <div class="looking-hub-links">
+        <h2 class="section-title">Ищу</h2>
+        <p class="section-hint">Все заявки и отклики — на одной странице, без дублей</p>
+        <div class="looking-hub-links__row">
+            <a href="{% url 'catalog:looking' %}#board" class="btn btn--outline">
+                Заявки покупателей{% if open_looking_count %} ({{ open_looking_count }}){% endif %}
+            </a>
+            {% if sent_offers_count %}
+                <a href="{% url 'catalog:looking' %}#my-offers" class="btn btn--outline" style="margin-left:8px">
+                    Мои предложения ({{ sent_offers_count }})
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <h2 class="section-title">Что искали, но не нашли</h2>
+    <table class="table">
+        {% for s in failed_searches %}<tr><td>{{ s.query }}</td><td>{{ s.cnt }}</td></tr>{% empty %}<tr><td colspan="2">Нет данных</td></tr>{% endfor %}
+    </table>
+</div>
+{% endblock %}

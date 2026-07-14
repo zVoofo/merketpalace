@@ -1,57 +1,196 @@
-{% extends 'base.html' %}
-{% load static listing_extras %}
-
-{% block content %}
-<div class="container">
-    <h1>Мои объявления</h1>
-    <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
-
-    <div class="listings-table-wrap">
-        <table class="table table--listings">
-            <thead>
-                <tr>
-                    <th>Название</th>
-                    <th>Цена</th>
-                    <th>Остаток</th>
-                    <th>Статус</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for l in listings %}
-                <tr>
-                    <td>
-                        {% if l.status == 'active' %}
-                            <a href="{% url 'listings:detail' l.slug %}">{{ l.title }}</a>
-                        {% else %}
-                            <strong>{{ l.title }}</strong>
-                        {% endif %}
-                        {% if l.status == 'rejected' and rejection_reasons.l.id %}
-                            <div class="listing-reject-reason">{{ rejection_reasons.l.id }}</div>
-                        {% endif %}
-                    </td>
-                    <td>{{ l.price|floatformat:0 }} ₽</td>
-                    <td>{{ l.quantity }}</td>
-                    <td><span class="status-badge status-badge--{{ l.status }}">{{ l.get_status_display }}</span></td>
-                    <td class="listing-actions">
-                        <a href="{% url 'listings:edit' l.pk %}" class="btn btn--sm btn--outline">Редактировать</a>
-                        {% if l.status == 'active' %}
-                            <form method="POST" action="{% url 'listings:unpublish' l.pk %}" class="inline-form" onsubmit="return confirm('Снять с публикации?')">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn--sm btn--outline">Снять</button>
-                            </form>
-                        {% endif %}
-                        <form method="POST" action="{% url 'listings:delete' l.pk %}" class="inline-form" onsubmit="return confirm('Удалить объявление навсегда?')">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn--sm btn--danger">Удалить</button>
-                        </form>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5">Нет объявлений</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+
+{% load static listing_extras %}
+
+
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Мои объявления</h1>
+
+    <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
+
+
+
+    <div class="listings-table-wrap">
+
+        <table class="table table--listings">
+
+            <thead>
+
+                <tr>
+
+                    <th>Название</th>
+
+                    <th>Цена</th>
+
+                    <th>Остаток</th>
+
+                    <th>Статус</th>
+
+                    <th>Действия</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for l in listings %}
+
+                <tr>
+
+                    <td>
+
+                        {% if l.status == 'active' %}
+
+                            <a href="{% url 'listings:detail' l.slug %}">{{ l.title }}</a>
+
+                        {% else %}
+
+                            <strong>{{ l.title }}</strong>
+
+                        {% endif %}
+
+                        {% if l.status == 'rejected' and rejection_reasons.l.id %}
+
+                            <div class="listing-reject-reason">{{ rejection_reasons.l.id }}</div>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>{{ l.price|floatformat:0 }} ₽</td>
+
+                    <td>{{ l.quantity }}</td>
+
+                    <td><span class="status-badge status-badge--{{ l.status }}">{{ l.get_status_display }}</span></td>
+
+                    <td class="listing-actions">
+
+                        <a href="{% url 'listings:edit' l.pk %}" class="btn btn--sm btn--outline">Редактировать</a>
+
+                        {% if l.status == 'active' %}
+
+                            <form method="POST" action="{% url 'listings:unpublish' l.pk %}" class="inline-form" onsubmit="return confirm('Снять с публикации? Объявление переместится в архив.')">
+
+                                {% csrf_token %}
+
+                                <button type="submit" class="btn btn--sm btn--outline">Снять</button>
+
+                            </form>
+
+                        {% endif %}
+
+                        <form method="POST" action="{% url 'listings:delete' l.pk %}" class="inline-form" onsubmit="return confirm('Удалить объявление навсегда?')">
+
+                            {% csrf_token %}
+
+                            <button type="submit" class="btn btn--sm btn--danger">Удалить</button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr><td colspan="5">Нет активных объявлений</td></tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+
+    {% if archived_listings %}
+
+    <section class="listings-archive" id="archive" style="margin-top:40px">
+
+        <h2 class="section-title">Архив</h2>
+
+        <p class="section-hint">Снятые с публикации объявления. Можно снова разместить в каталоге.</p>
+
+        <div class="listings-table-wrap">
+
+            <table class="table table--listings">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Название</th>
+
+                        <th>Цена</th>
+
+                        <th>Остаток</th>
+
+                        <th>Статус</th>
+
+                        <th>Действия</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for l in archived_listings %}
+
+                    <tr>
+
+                        <td><strong>{{ l.title }}</strong></td>
+
+                        <td>{{ l.price|floatformat:0 }} ₽</td>
+
+                        <td>{{ l.quantity }}</td>
+
+                        <td><span class="status-badge status-badge--archived">{{ l.get_status_display }}</span></td>
+
+                        <td class="listing-actions">
+
+                            <form method="POST" action="{% url 'listings:republish' l.pk %}" class="inline-form" onsubmit="return confirm('Снова разместить объявление в каталоге?')">
+
+                                {% csrf_token %}
+
+                                <button type="submit" class="btn btn--sm">Разместить снова</button>
+
+                            </form>
+
+                            <a href="{% url 'listings:edit' l.pk %}" class="btn btn--sm btn--outline">Редактировать</a>
+
+                            <form method="POST" action="{% url 'listings:delete' l.pk %}" class="inline-form" onsubmit="return confirm('Удалить объявление навсегда?')">
+
+                                {% csrf_token %}
+
+                                <button type="submit" class="btn btn--sm btn--danger">Удалить</button>
+
+                            </form>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
+

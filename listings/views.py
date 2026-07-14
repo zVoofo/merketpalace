@@ -145,15 +145,23 @@ def seller_dashboard(request):
     failed = SearchQuery.objects.filter(results_count=0).values('query').annotate(
         cnt=Count('id')
     ).order_by('-cnt')[:10]
-    my_looking = SearchRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
+    open_looking_count = SearchRequest.objects.filter(
+        status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS],
+    ).exclude(user=request.user).count()
+    sent_offers_count = SearchRequest.objects.filter(
+        matched_seller=request.user,
+        status=SearchRequest.Status.FOUND,
+    ).count()
     return render(request, 'seller/dashboard.html', {
         'title': 'Кабинет продавца',
         'listings_count': listings.count(),
         'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
+        'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
         'total_views': sum(l.views_count for l in listings),
         'failed_searches': failed,
         'orders_count': orders_count,
-        'my_looking': my_looking,
+        'open_looking_count': open_looking_count,
+        'sent_offers_count': sent_offers_count,
     })
 
 
@@ -166,7 +174,22 @@ def listing_unpublish(request, pk):
     else:
         listing.status = Listing.Status.ARCHIVED
         listing.save(update_fields=['status'])
-        messages.success(request, 'Объявление снято с публикации')
+        messages.success(request, 'Объявление снято с публикации и перемещено в архив')
+    return redirect('seller:listings')
+
+
+@login_required
+@require_POST
+def listing_republish(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, user=request.user)
+    if listing.status != Listing.Status.ARCHIVED:
+        messages.error(request, 'Разместить снова можно только объявление из архива')
+        return redirect('seller:listings')
+    if not listing.images.exists():
+        messages.error(request, 'Добавьте хотя бы одно фото или видео перед публикацией')
+        return redirect('listings:edit', pk=listing.pk)
+    remoderate_listing(listing, reason='Повторная публикация')
+    messages.success(request, 'Объявление отправлено на проверку (~30 сек) и снова появится в каталоге')
     return redirect('seller:listings')
 
 
@@ -184,7 +207,9 @@ def listing_delete(request, pk):
 
 @login_required
 def seller_listings(request):
-    listings = Listing.objects.filter(user=request.user).prefetch_related('images')
+    all_listings = Listing.objects.filter(user=request.user).prefetch_related('images')
+    listings = all_listings.exclude(status=Listing.Status.ARCHIVED)
+    archived_listings = all_listings.filter(status=Listing.Status.ARCHIVED)
     rejection_reasons = {}
     for mq in ModerationQueue.objects.filter(
         listing__user=request.user, status='rejected',
@@ -194,5 +219,6 @@ def seller_listings(request):
     return render(request, 'seller/listings.html', {
         'title': 'Мои объявления',
         'listings': listings,
+        'archived_listings': archived_listings,
         'rejection_reasons': rejection_reasons,
     })

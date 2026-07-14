@@ -222,20 +222,18 @@ def profile_view(request):
         form = ProfileForm(instance=request.user)
         org_form = OrganizationForm(instance=org)
 
-    looking_responses = []
+    looking_incoming_count = 0
     if request.user.is_authenticated:
-        looking_responses = SearchRequest.objects.filter(
+        looking_incoming_count = SearchRequest.objects.filter(
             user=request.user,
-            matched_listing__isnull=False,
             status=SearchRequest.Status.FOUND,
-        ).select_related('matched_listing', 'matched_seller').prefetch_related(
-            'matched_listing__images',
-        ).order_by('-created_at')[:10]
+            matched_listing__isnull=False,
+        ).count()
 
     return render(request, 'accounts/profile.html', {
         'title': 'Профиль', 'form': form, 'org_form': org_form,
         'wallet': wallet, 'verify_form': verify_form,
-        'looking_responses': looking_responses,
+        'looking_incoming_count': looking_incoming_count,
     })
 
 

@@ -9,5 +9,6 @@ urlpatterns = [
     path('looking/', views.looking_board, name='looking'),
     path('looking/<int:pk>/respond/', views.respond_to_search, name='respond'),
     path('looking/<int:pk>/decline/', views.decline_search_offer, name='decline_offer'),
+    path('looking/<int:pk>/withdraw/', views.withdraw_search_offer, name='withdraw_offer'),
     path('search-request/', views.search_request_view, name='search_request'),
 ]

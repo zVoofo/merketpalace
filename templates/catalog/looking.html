@@ -1,32 +1,81 @@
 {% extends 'base.html' %}
+{% load static listing_extras %}
 
 {% block content %}
-<div class="container">
+<div class="container looking-hub">
     <h1 class="page-title">Ищу</h1>
-    <p class="page-lead">Покупатели ищут товары — продавцы могут предложить свои объявления</p>
+    <p class="page-lead">Одна страница для заявок покупателей и ваших откликов — без дублей в профиле и кабинете</p>
 
-    {% if user.is_authenticated and my_search_requests %}
-    <section class="looking-section looking-section--mine">
-        <h2 class="section-title">Мои заявки</h2>
-        <p class="section-hint">Ваши заявки видны только вам — другие их не видят в общем списке</p>
-        {% for sr in my_search_requests %}
-            <div class="looking-card looking-card--mine">
-                <div class="looking-card__head">
-                    <strong>{{ sr.query }}</strong>
-                    <span class="status-badge status-badge--{{ sr.status }}">{{ sr.get_status_display }}</span>
+    {% if user.is_authenticated %}
+        {% if incoming_offers %}
+        <section class="looking-section" id="my-requests">
+            <h2 class="section-title">🔔 Отклики на ваши заявки</h2>
+            <p class="section-hint">Продавцы предложили товары — посмотрите, напишите или отклоните</p>
+            {% for sr in incoming_offers %}
+                {% include 'includes/looking_offer_card.html' with sr=sr %}
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="looking-section looking-section--mine" id="my-requests-list">
+            <h2 class="section-title">Мои заявки</h2>
+            <p class="section-hint">Ваши запросы не видны другим покупателям в общем списке</p>
+            {% for sr in my_search_requests %}
+                <div class="looking-card looking-card--mine">
+                    <div class="looking-card__head">
+                        <strong>{{ sr.query }}</strong>
+                        <span class="status-badge status-badge--{{ sr.status }}">{{ sr.get_status_display }}</span>
+                    </div>
+                    {% if sr.description %}<p class="looking-card__desc">{{ sr.description }}</p>{% endif %}
+                    <p class="looking-card__meta">{{ sr.created_at|date:"d.m.Y H:i" }}</p>
+                    {% if sr.status == 'found' and sr.matched_listing %}
+                        <p class="looking-card__match">Ожидает вашего решения — см. блок «Отклики» выше</p>
+                    {% endif %}
                 </div>
-                {% if sr.description %}<p class="looking-card__desc">{{ sr.description }}</p>{% endif %}
-                <p class="looking-card__meta">{{ sr.created_at|date:"d.m.Y H:i" }}</p>
-                {% if sr.matched_listing %}
-                    <p class="looking-card__match">✓ Предложено: <a href="{% url 'listings:detail' sr.matched_listing.slug %}">{{ sr.matched_listing.title }}</a></p>
-                {% endif %}
-            </div>
-        {% endfor %}
-    </section>
+            {% empty %}
+                <p class="empty-hint">Заявок пока нет. Не нашли в <a href="{% url 'catalog:index' %}">каталоге</a>? Оставьте запрос через поиск.</p>
+            {% endfor %}
+        </section>
+
+        {% if my_sent_offers %}
+        <section class="looking-section" id="my-offers">
+            <h2 class="section-title">Мои предложения</h2>
+            <p class="section-hint">Заявки покупателей, на которые вы откликнулись</p>
+            {% for sr in my_sent_offers %}
+                <div class="looking-card">
+                    <div class="looking-card__head">
+                        <strong>{{ sr.query }}</strong>
+                        <span class="status-badge status-badge--found">Ожидает покупателя</span>
+                    </div>
+                    <p class="looking-card__meta">
+                        Покупатель: {{ sr.user.first_name|default:sr.user.username }}
+                        · {{ sr.created_at|date:"d.m.Y H:i" }}
+                    </p>
+                    {% if sr.matched_listing %}
+                        <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
+                            <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                            <span>
+                                <strong>{{ sr.matched_listing.title }}</strong>
+                                <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
+                            </span>
+                        </a>
+                    {% endif %}
+                    <div class="looking-widget__actions">
+                        <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать покупателю</a>
+                        <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отозвать предложение? Заявка снова появится в общем списке.')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Отозвать</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+        {% endif %}
     {% endif %}
 
-    <section class="looking-section">
+    <section class="looking-section" id="board">
         <h2 class="section-title">Заявки покупателей</h2>
+        <p class="section-hint">{% if user.is_authenticated and user.active_role == 'seller' %}Выберите объявление и предложите его покупателю{% else %}Переключитесь в режим продавца, чтобы откликаться{% endif %}</p>
         {% for sr in search_requests %}
             <div class="looking-card">
                 <div class="looking-card__head">
@@ -37,15 +86,13 @@
                 <p class="looking-card__meta">{{ sr.created_at|date:"d.m.Y H:i" }}
                     {% if sr.user %} · {{ sr.user.first_name|default:sr.user.username }}{% endif %}
                 </p>
-                {% if sr.matched_listing %}
-                    <p class="looking-card__match">✓ Предложено: <a href="{% url 'listings:detail' sr.matched_listing.slug %}">{{ sr.matched_listing.title }}</a></p>
-                {% elif user.is_authenticated and user.active_role == 'seller' %}
+                {% if user.is_authenticated and user.active_role == 'seller' %}
                     <form method="POST" action="{% url 'catalog:respond' sr.pk %}" class="looking-respond-form">
                         {% csrf_token %}
                         <select name="listing_id" required>
                             <option value="">Выберите ваше объявление...</option>
-                            {% for l in user.listings.all %}
-                                {% if l.status == 'active' %}<option value="{{ l.id }}">{{ l.title }}</option>{% endif %}
+                            {% for l in seller_listings %}
+                                <option value="{{ l.id }}">{{ l.title }} — {{ l.price|floatformat:0 }} ₽</option>
                             {% endfor %}
                         </select>
                         <button type="submit" class="btn btn--sm">Предложить</button>
@@ -55,7 +102,7 @@
                 {% endif %}
             </div>
         {% empty %}
-            <p class="empty-hint">Заявок пока нет. <a href="{% url 'catalog:index' %}">Поищите в каталоге</a> — если не найдёте, оставьте заявку.</p>
+            <p class="empty-hint">Новых заявок нет. Загляните позже или <a href="{% url 'catalog:index' %}">поищите в каталоге</a>.</p>
         {% endfor %}
     </section>
 

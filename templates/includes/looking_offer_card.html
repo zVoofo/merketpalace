@@ -1,0 +1,21 @@
+{% load static listing_extras %}
+<div class="looking-offer-card">
+    <p class="looking-widget__query">Заявка: «{{ sr.query }}»</p>
+    {% if sr.matched_seller %}
+        <p class="looking-widget__seller"><strong>{{ sr.matched_seller.first_name|default:sr.matched_seller.username }}</strong> предложил:</p>
+    {% endif %}
+    <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
+        <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+        <span>
+            <strong>{{ sr.matched_listing.title }}</strong>
+            <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
+        </span>
+    </a>
+    <div class="looking-widget__actions">
+        <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
+        <form method="POST" action="{% url 'catalog:decline_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отклонить это предложение? Заявка снова появится в общем списке.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Не подходит</button>
+        </form>
+    </div>
+</div>
