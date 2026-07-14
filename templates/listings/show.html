@@ -21,6 +21,18 @@
                 {% if listing.images.count > 1 %}
                     <button type="button" class="gallery-nav gallery-nav--prev" aria-label="Назад">‹</button>
                     <button type="button" class="gallery-nav gallery-nav--next" aria-label="Вперёд">›</button>
+                    <div class="gallery-thumbs" role="tablist" aria-label="Миниатюры">
+                        {% for img in listing.images.all %}
+                            <button type="button" class="gallery-thumb{% if forloop.first %} is-active{% endif %}" data-index="{{ forloop.counter0 }}" role="tab" aria-label="Слайд {{ forloop.counter }}">
+                                {% if img.media_type == 'video' %}
+                                    <video src="{{ img.file.url }}" muted playsinline preload="metadata"></video>
+                                    <span class="gallery-thumb__badge">▶</span>
+                                {% else %}
+                                    <img src="{{ img.file.url }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                {% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
                     <div class="gallery-dots">
                         {% for img in listing.images.all %}
                             <button type="button" class="gallery-dot{% if forloop.first %} is-active{% endif %}" data-index="{{ forloop.counter0 }}" aria-label="Слайд {{ forloop.counter }}"></button>

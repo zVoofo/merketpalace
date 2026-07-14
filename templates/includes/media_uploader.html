@@ -2,7 +2,8 @@
 <div class="media-uploader" id="media-uploader"
      data-max="{{ max|default:10 }}"
      data-min="{% if min is not None %}{{ min }}{% else %}1{% endif %}"
-     data-existing="{{ existing|default:0 }}">
+     data-existing="{{ existing|default:0 }}"
+     data-crop="{{ crop|default:'1' }}">
     <label class="form__group-label">{{ label|default:"Фото и видео" }}</label>
     <p class="media-uploader__hint">
         {% if optional %}
@@ -10,6 +11,7 @@
         {% else %}
             От {% if min is not None %}{{ min }}{% else %}1{% endif %} до {{ max|default:10 }} файлов · JPG, PNG, WebP, GIF, MP4, WebM
         {% endif %}
+        {% if crop|default:'1' == '1' %}· Фото можно обрезать перед загрузкой{% endif %}
     </p>
     <div class="media-uploader__grid" id="media-uploader-grid">
         {% if existing_images %}
@@ -28,4 +30,24 @@
         {% endif %}
     </div>
     <p class="media-uploader__count" id="media-uploader-count"></p>
+</div>
+
+<div class="crop-modal" id="image-crop-modal" hidden role="dialog" aria-modal="true" aria-labelledby="crop-modal-title">
+    <div class="crop-modal__backdrop" data-crop-close></div>
+    <div class="crop-modal__dialog">
+        <h3 class="crop-modal__title" id="crop-modal-title">Обрезка фото</h3>
+        <p class="crop-modal__hint">Перетащите фото и отрегулируйте масштаб. В каталоге все превью — квадратные 1:1.</p>
+        <div class="crop-modal__stage">
+            <canvas id="crop-canvas" width="320" height="320" aria-label="Область обрезки"></canvas>
+        </div>
+        <label class="crop-modal__zoom">
+            <span>Масштаб</span>
+            <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1">
+        </label>
+        <div class="crop-modal__actions">
+            <button type="button" class="btn btn--outline btn--sm" data-crop-cancel>Отмена</button>
+            <button type="button" class="btn btn--outline btn--sm" data-crop-skip>Без обрезки</button>
+            <button type="button" class="btn btn--sm" data-crop-apply>Применить</button>
+        </div>
+    </div>
 </div>

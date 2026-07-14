@@ -75,6 +75,135 @@ document.getElementById('burger')?.addEventListener('click', () => {
   });
 })();
 
+/* --- Обрезка фото перед загрузкой --- */
+const ImageCropper = (() => {
+  const SIZE = 320;
+  const OUTPUT = 1200;
+  let modal, canvas, zoomInput, img, offsetX, offsetY, zoom, baseScale;
+  let dragging = false, dragStart = null, pendingResolve, pendingReject, sourceFile;
+
+  const ensureModal = () => {
+    if (modal) return;
+    modal = document.getElementById('image-crop-modal');
+    canvas = document.getElementById('crop-canvas');
+    zoomInput = document.getElementById('crop-zoom');
+    if (!modal || !canvas) return;
+
+    modal.querySelector('[data-crop-cancel]')?.addEventListener('click', () => close(null));
+    modal.querySelector('[data-crop-skip]')?.addEventListener('click', () => close(sourceFile));
+    modal.querySelector('[data-crop-apply]')?.addEventListener('click', () => {
+      exportCropped().then((file) => close(file)).catch(() => close(sourceFile));
+    });
+    modal.querySelector('[data-crop-close]')?.addEventListener('click', () => close(null));
+    zoomInput?.addEventListener('input', () => {
+      zoom = parseFloat(zoomInput.value) || 1;
+      clampOffset();
+      draw();
+    });
+
+    const onPointerDown = (e) => {
+      dragging = true;
+      canvas.classList.add('is-dragging');
+      dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e) => {
+      if (!dragging || !dragStart) return;
+      offsetX = dragStart.ox + (e.clientX - dragStart.x);
+      offsetY = dragStart.oy + (e.clientY - dragStart.y);
+      clampOffset();
+      draw();
+    };
+    const onPointerUp = (e) => {
+      dragging = false;
+      canvas.classList.remove('is-dragging');
+      dragStart = null;
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+    };
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
+  };
+
+  const clampOffset = () => {
+    if (!img) return;
+    const s = baseScale * zoom;
+    const w = img.width * s;
+    const h = img.height * s;
+    offsetX = Math.min(0, Math.max(SIZE - w, offsetX));
+    offsetY = Math.min(0, Math.max(SIZE - h, offsetY));
+  };
+
+  const draw = () => {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#141210';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    const s = baseScale * zoom;
+    ctx.drawImage(img, offsetX, offsetY, img.width * s, img.height * s);
+    ctx.strokeStyle = 'rgba(255,255,255,.25)';
+    ctx.strokeRect(0.5, 0.5, SIZE - 1, SIZE - 1);
+  };
+
+  const exportCropped = () => new Promise((resolve, reject) => {
+    const out = document.createElement('canvas');
+    out.width = out.height = OUTPUT;
+    const ctx = out.getContext('2d');
+    const ratio = OUTPUT / SIZE;
+    const s = baseScale * zoom * ratio;
+    ctx.drawImage(img, offsetX * ratio, offsetY * ratio, img.width * s, img.height * s);
+    out.toBlob((blob) => {
+      if (!blob) { reject(new Error('crop failed')); return; }
+      const name = (sourceFile.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+      resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
+    }, 'image/jpeg', 0.9);
+  });
+
+  const close = (result) => {
+    modal.hidden = true;
+    if (result === null) pendingReject?.(new Error('cancelled'));
+    else pendingResolve?.(result);
+    pendingResolve = pendingReject = null;
+    sourceFile = null;
+    img = null;
+  };
+
+  const shouldCrop = (file) => file.type.startsWith('image/')
+    && file.type !== 'image/gif'
+    && file.type !== 'image/svg+xml';
+
+  return {
+    open(file) {
+      ensureModal();
+      if (!modal || !canvas || !shouldCrop(file)) return Promise.resolve(file);
+      sourceFile = file;
+      return new Promise((resolve, reject) => {
+        pendingResolve = resolve;
+        pendingReject = reject;
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+          URL.revokeObjectURL(url);
+          img = image;
+          baseScale = Math.max(SIZE / img.width, SIZE / img.height);
+          zoom = 1;
+          if (zoomInput) zoomInput.value = '1';
+          offsetX = (SIZE - img.width * baseScale) / 2;
+          offsetY = (SIZE - img.height * baseScale) / 2;
+          clampOffset();
+          draw();
+          modal.hidden = false;
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(file);
+        };
+        image.src = url;
+      });
+    },
+  };
+})();
+
 /* --- Загрузчик фото/видео для объявлений --- */
 (function initMediaUploader() {
   const root = document.getElementById('media-uploader');
@@ -83,6 +212,7 @@ document.getElementById('burger')?.addEventListener('click', () => {
 
   const max = parseInt(root.dataset.max, 10) || 10;
   const min = parseInt(root.dataset.min, 10) || 1;
+  const enableCrop = root.dataset.crop !== '0';
   let existingCount = root.querySelectorAll('.media-uploader__item.is-existing').length
     || parseInt(root.dataset.existing, 10) || 0;
   const countEl = document.getElementById('media-uploader-count');
@@ -119,27 +249,7 @@ document.getElementById('burger')?.addEventListener('click', () => {
     });
   });
 
-  const createAddSlot = () => {
-    const total = existingCount + countNewFiles();
-    if (total >= max) return;
-
-    const slot = document.createElement('div');
-    slot.className = 'media-uploader__item media-uploader__item--add';
-    slot.innerHTML = `
-      <label class="media-uploader__add-label">
-        <input type="file" name="media" class="media-uploader__input" accept="image/*,video/mp4,video/webm,video/quicktime">
-        <span class="media-uploader__plus">+</span>
-        <span class="media-uploader__add-text">Добавить</span>
-      </label>`;
-    const input = slot.querySelector('input');
-    input.addEventListener('change', () => handleFile(slot, input));
-    grid.appendChild(slot);
-  };
-
-  const handleFile = (slot, input) => {
-    const file = input.files[0];
-    if (!file) return;
-
+  const fillSlot = (slot, file) => {
     slot.classList.remove('media-uploader__item--add');
     slot.classList.add('is-done');
     slot.innerHTML = '';
@@ -155,21 +265,16 @@ document.getElementById('burger')?.addEventListener('click', () => {
       badge.textContent = '▶';
       slot.appendChild(badge);
     } else {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      img.alt = '';
-      slot.appendChild(img);
+      const imgEl = document.createElement('img');
+      imgEl.src = URL.createObjectURL(file);
+      imgEl.alt = '';
+      slot.appendChild(imgEl);
     }
 
     const check = document.createElement('span');
     check.className = 'media-uploader__check';
     check.textContent = '✓';
     slot.appendChild(check);
-
-    const name = document.createElement('span');
-    name.className = 'media-uploader__name';
-    name.textContent = file.name.length > 18 ? file.name.slice(0, 15) + '…' : file.name;
-    slot.appendChild(name);
 
     const hidden = document.createElement('input');
     hidden.type = 'file';
@@ -192,9 +297,42 @@ document.getElementById('burger')?.addEventListener('click', () => {
     });
     slot.appendChild(remove);
 
-    slot.querySelector('.media-uploader__add-label')?.remove();
     if (!grid.querySelector('.media-uploader__item--add')) createAddSlot();
     updateCount();
+  };
+
+  const createAddSlot = () => {
+    const total = existingCount + countNewFiles();
+    if (total >= max) return;
+
+    const slot = document.createElement('div');
+    slot.className = 'media-uploader__item media-uploader__item--add';
+    slot.innerHTML = `
+      <label class="media-uploader__add-label">
+        <input type="file" class="media-uploader__input" accept="image/*,video/mp4,video/webm,video/quicktime">
+        <span class="media-uploader__plus">+</span>
+        <span class="media-uploader__add-text">Добавить</span>
+      </label>`;
+    const input = slot.querySelector('input');
+    input.addEventListener('change', () => handleFile(slot, input));
+    grid.appendChild(slot);
+  };
+
+  const handleFile = async (slot, input) => {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    let finalFile = file;
+    if (enableCrop && file.type.startsWith('image/')) {
+      try {
+        finalFile = await ImageCropper.open(file);
+      } catch (_) {
+        return;
+      }
+    }
+
+    fillSlot(slot, finalFile);
   };
 
   createAddSlot();
@@ -574,6 +712,7 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
 
   const slides = [...gallery.querySelectorAll('.gallery-slide')];
   const dots = [...gallery.querySelectorAll('.gallery-dot')];
+  const thumbs = [...gallery.querySelectorAll('.gallery-thumb')];
   const prev = gallery.querySelector('.gallery-nav--prev');
   const next = gallery.querySelector('.gallery-nav--next');
   const counter = document.getElementById('gallery-current');
@@ -583,6 +722,7 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
 
   const pauseVideos = () => {
     slides.forEach((s) => s.querySelector('video')?.pause());
+    thumbs.forEach((t) => t.querySelector('video')?.pause());
   };
 
   const show = (i) => {
@@ -590,12 +730,14 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     idx = (i + slides.length) % slides.length;
     slides.forEach((s, n) => s.classList.toggle('is-active', n === idx));
     dots.forEach((d, n) => d.classList.toggle('is-active', n === idx));
+    thumbs.forEach((t, n) => t.classList.toggle('is-active', n === idx));
     if (counter) counter.textContent = String(idx + 1);
   };
 
   prev?.addEventListener('click', () => show(idx - 1));
   next?.addEventListener('click', () => show(idx + 1));
   dots.forEach((d) => d.addEventListener('click', () => show(parseInt(d.dataset.index, 10))));
+  thumbs.forEach((t) => t.addEventListener('click', () => show(parseInt(t.dataset.index, 10))));
 
   let touchX = null;
   gallery.addEventListener('touchstart', (e) => { touchX = e.changedTouches[0].clientX; }, { passive: true });
