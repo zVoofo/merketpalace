@@ -13,7 +13,7 @@
         <h1 class="hub-head__title">Профиль</h1>
         {% if incoming_count %}
             <a href="{% url 'accounts:my_requests' %}#offers" class="btn btn--sm btn--accent">
-                🔔 {{ incoming_count }} нов{{ incoming_count|pluralize:"ый,ых,ых" }} отклик{{ incoming_count|pluralize:"","а","ов" }}
+                🔔 {% if incoming_count == 1 %}1 новый отклик{% else %}{{ incoming_count }} новых откликов{% endif %}
             </a>
         {% endif %}
     </header>
