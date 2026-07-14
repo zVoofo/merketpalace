@@ -199,6 +199,37 @@ def respond_to_search(request, pk):
     return redirect('catalog:looking')
 
 
+@login_required
+@require_POST
+def decline_search_offer(request, pk):
+    """Покупатель отклоняет предложение — заявка снова в «Ищу», продавец получает уведомление."""
+    sr = get_object_or_404(SearchRequest, pk=pk, user=request.user, status=SearchRequest.Status.FOUND)
+    if not sr.matched_listing or not sr.matched_seller:
+        messages.error(request, 'Нет активного предложения для отклонения')
+        return redirect('accounts:profile')
+
+    listing_title = sr.matched_listing.title
+    seller = sr.matched_seller
+    query = sr.query
+
+    sr.matched_listing = None
+    sr.matched_seller = None
+    sr.status = SearchRequest.Status.NEW
+    sr.response_seen = False
+    sr.save(update_fields=['matched_listing', 'matched_seller', 'status', 'response_seen'])
+
+    notify(
+        seller,
+        'search_offer',
+        f'Предложение не подошло — «{query}»',
+        f'Покупатель отклонил ваше предложение «{listing_title}». Заявка снова в разделе «Ищу».',
+        '/catalog/looking/',
+    )
+
+    messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам в разделе «Ищу».')
+    return redirect('accounts:profile#looking-responses')
+
+
 def search_preview(request):
     """Картинка-превью поиска — отдаётся напрямую, без /media/."""
     q = request.GET.get('q', '').strip()

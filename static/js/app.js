@@ -46,19 +46,44 @@ document.getElementById('burger')?.addEventListener('click', () => {
 
   const max = parseInt(root.dataset.max, 10) || 10;
   const min = parseInt(root.dataset.min, 10) || 1;
-  const existing = parseInt(root.dataset.existing, 10) || 0;
+  let existingCount = root.querySelectorAll('.media-uploader__item.is-existing').length
+    || parseInt(root.dataset.existing, 10) || 0;
   const countEl = document.getElementById('media-uploader-count');
   const form = document.getElementById('listing-form');
-  let slotIndex = 0;
+
+  const countNewFiles = () => grid.querySelectorAll('.media-uploader__item.is-done:not(.is-existing)').length;
 
   const updateCount = () => {
-    const filled = grid.querySelectorAll('.media-uploader__item.is-done').length;
-    const total = existing + filled;
-    if (countEl) countEl.textContent = `Выбрано: ${filled} · Всего будет: ${total} / ${max}`;
+    const filled = countNewFiles();
+    const total = existingCount + filled;
+    if (countEl) countEl.textContent = `Новых: ${filled} · Всего: ${total} / ${max}`;
   };
 
+  const removeExisting = (slot) => {
+    const id = slot.dataset.imageId;
+    if (id && form) {
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'remove_media';
+      hidden.value = id;
+      form.appendChild(hidden);
+    }
+    slot.remove();
+    existingCount = Math.max(0, existingCount - 1);
+    if (!grid.querySelector('.media-uploader__item--add')) createAddSlot();
+    updateCount();
+  };
+
+  grid.querySelectorAll('.media-uploader__item.is-existing .media-uploader__remove').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const slot = btn.closest('.media-uploader__item');
+      if (slot) removeExisting(slot);
+    });
+  });
+
   const createAddSlot = () => {
-    const total = existing + grid.querySelectorAll('.media-uploader__item.is-done').length;
+    const total = existingCount + countNewFiles();
     if (total >= max) return;
 
     const slot = document.createElement('div');
@@ -139,8 +164,8 @@ document.getElementById('burger')?.addEventListener('click', () => {
   updateCount();
 
   form?.addEventListener('submit', (e) => {
-    const filled = grid.querySelectorAll('.media-uploader__item.is-done').length;
-    if (existing + filled < min) {
+    const total = existingCount + countNewFiles();
+    if (total < min) {
       e.preventDefault();
       alert(`Добавьте хотя бы ${min} фото или видео`);
     }

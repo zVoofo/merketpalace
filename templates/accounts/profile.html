@@ -19,7 +19,13 @@
                         <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
                     </span>
                 </a>
-                <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
+                <div class="looking-widget__actions">
+                    <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
+                    <form method="POST" action="{% url 'catalog:decline_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отклонить это предложение? Заявка снова появится в «Ищу».')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Не подходит</button>
+                    </form>
+                </div>
             </div>
         {% endfor %}
     </div>

@@ -10,26 +10,10 @@
         <div class="alert alert--info" style="margin-top:16px">Объявление на модерации (~30 сек). После сохранения проверка начнётся заново.</div>
     {% endif %}
     <div class="form form--wide" style="margin-top:24px">
-        {% if listing.images.exists %}
-            <div class="media-uploader__grid" style="margin-bottom:16px">
-                {% for img in listing.images.all %}
-                    <div class="media-uploader__item is-done">
-                        {% if img.media_type == 'video' %}
-                            <video src="{{ img.file.url }}" muted></video>
-                            <span class="media-uploader__badge">▶</span>
-                        {% else %}
-                            <img src="{{ img.file.url }}" alt="" onerror="this.src='{% static 'img/no-photo.svg' %}'">
-                        {% endif %}
-                        <span class="media-uploader__check">✓</span>
-                    </div>
-                {% endfor %}
-            </div>
-            <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Сейчас: {{ listing.images.count }} / 10</p>
-        {% endif %}
         <form method="POST" enctype="multipart/form-data" id="listing-form">
             {% csrf_token %}
+            {% include 'includes/media_uploader.html' with min=1 max=10 existing=listing.images.count existing_images=listing.images.all label="Фото и видео" %}
             {% for field in form %}<div class="form__group"><label>{{ field.label }}</label>{{ field }}</div>{% endfor %}
-            {% include 'includes/media_uploader.html' with min=0 max=10 existing=listing.images.count label="Добавить фото/видео" %}
             <button type="submit" class="btn">Сохранить</button>
         </form>
     </div>

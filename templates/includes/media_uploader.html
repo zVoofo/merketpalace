@@ -5,6 +5,21 @@
      data-existing="{{ existing|default:0 }}">
     <label class="form__group-label">{{ label|default:"Фото и видео" }}</label>
     <p class="media-uploader__hint">От {{ min|default:1 }} до {{ max|default:10 }} файлов · JPG, PNG, WebP, GIF, MP4, WebM</p>
-    <div class="media-uploader__grid" id="media-uploader-grid"></div>
+    <div class="media-uploader__grid" id="media-uploader-grid">
+        {% if existing_images %}
+            {% for img in existing_images %}
+                <div class="media-uploader__item is-done is-existing" data-image-id="{{ img.pk }}">
+                    {% if img.media_type == 'video' %}
+                        <video src="{{ img.file.url }}" muted playsinline></video>
+                        <span class="media-uploader__badge">▶</span>
+                    {% else %}
+                        <img src="{{ img.file.url }}" alt="" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                    {% endif %}
+                    <span class="media-uploader__check">✓</span>
+                    <button type="button" class="media-uploader__remove" title="Удалить" aria-label="Удалить">×</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
     <p class="media-uploader__count" id="media-uploader-count"></p>
 </div>

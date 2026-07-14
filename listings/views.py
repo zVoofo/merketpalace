@@ -81,14 +81,21 @@ def listing_create(request):
 def listing_edit(request, pk):
     listing = get_object_or_404(Listing, pk=pk, user=request.user)
     if request.method == 'POST':
+        remove_ids = [x for x in request.POST.getlist('remove_media') if x.isdigit()]
+
         form = ListingForm(request.POST, request.FILES, instance=listing)
         media_files = request.FILES.getlist('media')
+        remaining = listing.images.count()
+        if remove_ids:
+            remaining = listing.images.exclude(pk__in=remove_ids).count()
         media_errors = validate_media_files(
-            media_files, existing_count=listing.images.count(), require_min=False,
+            media_files, existing_count=remaining, require_min=False,
         )
-        if listing.images.count() == 0 and not media_files:
+        if remaining == 0 and not media_files:
             media_errors.append('Добавьте хотя бы 1 фото или видео')
         if form.is_valid() and not media_errors:
+            if remove_ids:
+                listing.images.filter(pk__in=remove_ids).delete()
             listing = form.save()
             if media_files:
                 save_listing_media(listing, media_files)
