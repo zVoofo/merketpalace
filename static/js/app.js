@@ -486,37 +486,48 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   }
 })();
 
-/* --- Профиль: якоря внутри вкладки «Мои заявки» --- */
-(function initProfileRequestsNav() {
+/* --- Заявки: якоря на странице «Мои заявки» --- */
+(function initRequestsAnchors() {
+  const valid = ['offers', 'my-searches', 'sent'];
   const hash = (location.hash || '').replace('#', '');
-  if (['offers', 'my-searches', 'sent'].includes(hash) && !location.search.includes('tab=requests')) {
-    location.replace(`${location.pathname}?tab=requests#${hash}`);
+  if (valid.includes(hash) && /\/profile\/?$/.test(location.pathname)) {
+    location.replace(`/accounts/my-requests/#${hash}`);
     return;
   }
 
-  const panel = document.getElementById('profile-panel-requests');
-  if (!panel) return;
+  const panel = document.getElementById('requests-panel');
+
+  const links = document.querySelectorAll('[data-requests-anchor]');
+  if (!links.length) return;
 
   const scrollToAnchor = (id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    panel.querySelectorAll('[data-requests-anchor]').forEach((link) => {
+    links.forEach((link) => {
       link.classList.toggle('is-active', link.dataset.requestsAnchor === id);
     });
   };
 
-  panel.querySelectorAll('[data-requests-anchor]').forEach((link) => {
+  links.forEach((link) => {
     link.addEventListener('click', (e) => {
+      const id = link.dataset.requestsAnchor;
+      if (!id || !document.getElementById(id)) return;
       e.preventDefault();
-      scrollToAnchor(link.dataset.requestsAnchor);
-      history.replaceState(null, '', `?tab=requests#${link.dataset.requestsAnchor}`);
+      scrollToAnchor(id);
+      const base = location.pathname.includes('my-requests')
+        ? location.pathname
+        : '/accounts/my-requests/';
+      history.replaceState(null, '', `${base}#${id}`);
     });
   });
 
-  const hash = (location.hash || '').replace('#', '');
-  if (location.search.includes('tab=requests') && ['offers', 'my-searches', 'sent'].includes(hash)) {
-    requestAnimationFrame(() => scrollToAnchor(hash));
+  const initial = (location.hash || '').replace('#', '');
+  if (valid.includes(initial)) {
+    requestAnimationFrame(() => scrollToAnchor(initial));
+  } else if (links.length) {
+    const first = links[0].dataset.requestsAnchor;
+    if (first) links[0].classList.add('is-active');
   }
 })();
 

@@ -19,7 +19,7 @@
     <div class="seller-actions" style="margin-bottom:24px">
         <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>
         <a href="{% url 'seller:listings' %}" class="btn btn--outline" style="margin-left:8px">Мои объявления</a>
-        <a href="{% url 'seller:requests' %}" class="btn btn--outline" style="margin-left:8px">
+        <a href="{% url 'accounts:my_requests' %}" class="btn btn--outline" style="margin-left:8px">
             Мои заявки{% if incoming_count %} ({{ incoming_count }}){% endif %}
         </a>
         {% if archived_count %}<a href="{% url 'seller:listings' %}#archive" class="btn btn--outline" style="margin-left:8px">Архив ({{ archived_count }})</a>{% endif %}

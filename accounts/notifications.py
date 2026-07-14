@@ -3,10 +3,11 @@ from .models import Notification
 
 
 LINK_ALIASES = {
-    '/seller/requests/#offers': lambda: reverse('accounts:profile') + '?tab=requests#offers',
-    '/seller/requests/': lambda: reverse('accounts:profile') + '?tab=requests',
-    '/seller/requests/#sent': lambda: reverse('accounts:profile') + '?tab=requests#sent',
-    '/accounts/my-requests/#offers': lambda: reverse('accounts:profile') + '?tab=requests#offers',
+    '/seller/requests/#offers': lambda: reverse('accounts:my_requests') + '#offers',
+    '/seller/requests/': lambda: reverse('accounts:my_requests'),
+    '/seller/requests/#sent': lambda: reverse('accounts:my_requests') + '#sent',
+    '/accounts/profile/?tab=requests': lambda: reverse('accounts:my_requests'),
+    '/accounts/profile/?tab=requests#offers': lambda: reverse('accounts:my_requests') + '#offers',
 }
 
 
@@ -18,7 +19,10 @@ def normalize_notification_link(link: str) -> str:
         return LINK_ALIASES[link]()
     if link.startswith('/seller/requests') or link.startswith('/accounts/my-requests'):
         suffix = '#' + link.split('#', 1)[1] if '#' in link else ''
-        return reverse('accounts:profile') + '?tab=requests' + (f'#{suffix.lstrip("#")}' if suffix else '')
+        return reverse('accounts:my_requests') + suffix
+    if 'tab=requests' in link:
+        suffix = '#' + link.split('#', 1)[1] if '#' in link else ''
+        return reverse('accounts:my_requests') + suffix
     if link.startswith('/') and not link.startswith('//'):
         return link
     return reverse('home')
@@ -40,12 +44,12 @@ def notify(user, ntype: str, title: str, body: str = '', link: str = ''):
         user=user,
         ntype=ntype,
         title=_trunc(title, 255),
-        body=body,
-        link=normalize_notification_link(link) if link else '',
+        body=_trunc(body, 2000),
+        link=normalize_notification_link(link),
     )
 
 
 def unread_count(user) -> int:
-    if not user.is_authenticated:
+    if not user or not getattr(user, 'is_authenticated', False) or not user.is_authenticated:
         return 0
     return Notification.objects.filter(user=user, is_read=False).count()

@@ -1,12 +1,12 @@
 <nav class="hub-subnav" aria-label="Раздел заявок">
-    <a href="{% url 'accounts:my_requests' %}#offers"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
+    <a href="{% url 'accounts:my_requests' %}#offers" data-requests-anchor="offers">
         Отклики мне{% if incoming_count %} <span class="hub-subnav__count">{{ incoming_count }}</span>{% endif %}
     </a>
-    <a href="{% url 'accounts:my_requests' %}#my-searches"{% if hub_active == 'requests' %} class="is-active"{% endif %}>Я ищу</a>
+    <a href="{% url 'accounts:my_requests' %}#my-searches" data-requests-anchor="my-searches">Я ищу</a>
     {% if user.active_role == 'seller' %}
-        <a href="{% url 'accounts:my_requests' %}#sent"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
+        <a href="{% url 'accounts:my_requests' %}#sent" data-requests-anchor="sent">
             Мои предложения{% if sent_count %} <span class="hub-subnav__count">{{ sent_count }}</span>{% endif %}
         </a>
-        <a href="{% url 'catalog:looking' %}"{% if hub_active == 'board' %} class="is-active"{% endif %}>Доска покупателей</a>
+        <a href="{% url 'catalog:looking' %}">Доска покупателей</a>
     {% endif %}
 </nav>

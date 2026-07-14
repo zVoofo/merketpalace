@@ -21,7 +21,6 @@ from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
 from listings.services import get_seller_rating
 from listings.views import looking_requests_context
-from catalog.views import looking_board_context
 
 
 def staff_required(view_func):
@@ -253,6 +252,16 @@ def public_profile_view(request, username):
 
 @login_required
 def profile_view(request):
+    tab = request.GET.get('tab', '')
+    if tab == 'requests':
+        anchor = request.GET.get('section', '')
+        url = reverse('accounts:my_requests')
+        if anchor in ('offers', 'my-searches', 'sent'):
+            url += f'#{anchor}'
+        return redirect(url)
+    if tab == 'board':
+        return redirect('catalog:looking')
+
     org = getattr(request.user, 'organization', None)
     wallet = get_wallet(request.user)
     verify_form = VerifyCodeForm()
@@ -348,22 +357,8 @@ def profile_view(request):
         response_seen=False,
     ).count()
 
-    tab = request.GET.get('tab', 'overview')
-    if tab not in ('overview', 'requests', 'board'):
-        tab = 'overview'
-    if tab == 'board' and request.user.active_role != 'seller':
-        tab = 'overview'
-
-    requests_anchor = 'offers'
-    if tab == 'requests':
-        hash_anchor = request.GET.get('section', '')
-        if hash_anchor in ('offers', 'my-searches', 'sent'):
-            requests_anchor = hash_anchor
-
     ctx = {
         'title': 'Профиль',
-        'tab': tab,
-        'requests_anchor': requests_anchor,
         'form': form,
         'org_form': org_form,
         'wallet': wallet,
@@ -375,8 +370,6 @@ def profile_view(request):
         'looking_incoming_count': looking_incoming_count,
         **looking_requests_context(request.user),
     }
-    if request.user.active_role == 'seller':
-        ctx.update(looking_board_context(request))
 
     return render(request, 'accounts/profile.html', ctx)
 
@@ -388,7 +381,10 @@ def cabinet_view(request):
 
 @login_required
 def my_requests_view(request):
-    return redirect(reverse('accounts:profile') + '?tab=requests')
+    return render(request, 'accounts/my_requests.html', {
+        'title': 'Мои заявки',
+        **looking_requests_context(request.user),
+    })
 
 
 @login_required
