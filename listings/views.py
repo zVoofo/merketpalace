@@ -148,9 +148,10 @@ def seller_dashboard(request):
     open_looking_count = SearchRequest.objects.filter(
         status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS],
     ).exclude(user=request.user).count()
-    sent_offers_count = SearchRequest.objects.filter(
-        matched_seller=request.user,
+    incoming_count = SearchRequest.objects.filter(
+        user=request.user,
         status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
     ).count()
     return render(request, 'seller/dashboard.html', {
         'title': 'Кабинет продавца',
@@ -161,7 +162,37 @@ def seller_dashboard(request):
         'failed_searches': failed,
         'orders_count': orders_count,
         'open_looking_count': open_looking_count,
-        'sent_offers_count': sent_offers_count,
+        'incoming_count': incoming_count,
+    })
+
+
+@login_required
+def seller_looking_requests(request):
+    """Личный кабинет: все свои заявки «Ищу» и отклики."""
+    incoming_offers = list(SearchRequest.objects.filter(
+        user=request.user,
+        status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
+    ).select_related('matched_listing', 'matched_seller').prefetch_related(
+        'matched_listing__images',
+    ).order_by('-created_at'))
+    my_requests = list(SearchRequest.objects.filter(
+        user=request.user,
+    ).order_by('-created_at'))
+    sent_offers = list(SearchRequest.objects.filter(
+        matched_seller=request.user,
+        status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
+    ).select_related('matched_listing', 'user').prefetch_related(
+        'matched_listing__images',
+    ).order_by('-created_at'))
+    return render(request, 'seller/requests.html', {
+        'title': 'Мои заявки',
+        'incoming_offers': incoming_offers,
+        'incoming_count': len(incoming_offers),
+        'my_requests': my_requests,
+        'sent_offers': sent_offers,
+        'sent_count': len(sent_offers),
     })
 
 
@@ -221,4 +252,9 @@ def seller_listings(request):
         'listings': listings,
         'archived_listings': archived_listings,
         'rejection_reasons': rejection_reasons,
+        'incoming_count': SearchRequest.objects.filter(
+            user=request.user,
+            status=SearchRequest.Status.FOUND,
+            matched_listing__isnull=False,
+        ).count(),
     })

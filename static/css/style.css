@@ -426,8 +426,12 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 
 /* --- Профиль / Ищу --- */
 .looking-offer-card{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
-.looking-hub-links{margin-bottom:34px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border-light)}
-.looking-hub-links__row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.cabinet-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding-bottom:16px;border-bottom:1px solid var(--border-light)}
+.cabinet-nav a{padding:8px 14px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent}
+.cabinet-nav a:hover{color:var(--primary);background:var(--primary-light)}
+.cabinet-nav a.is-active{color:var(--primary);background:var(--primary-light);border-color:var(--border)}
+.cabinet-nav__badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:10px;background:var(--error);color:#fff;font-size:.72rem;line-height:1.4;text-align:center}
+.cabinet-section{margin-bottom:32px}
 .profile-looking-banner{margin-bottom:20px}
 .looking-widget__title{font-size:1.1rem;margin-bottom:14px;font-weight:700}
 .looking-widget__item{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}

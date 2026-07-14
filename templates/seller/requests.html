@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    {% include 'includes/cabinet_nav.html' with active='requests' requests_badge=incoming_count %}
+
+    <h1 style="margin-top:20px">Мои заявки</h1>
+    <p class="page-lead">Всё, что связано с вашими запросами «Ищу» — в одном месте</p>
+
+    {% if incoming_offers %}
+    <section class="cabinet-section" id="offers">
+        <h2 class="section-title">🔔 Новые отклики <span class="cabinet-section__count">{{ incoming_count }}</span></h2>
+        {% for sr in incoming_offers %}
+            {% include 'includes/looking_offer_card.html' with sr=sr %}
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="cabinet-section" id="my-searches">
+        <h2 class="section-title">Что я ищу</h2>
+        {% for sr in my_requests %}
+            <div class="looking-card looking-card--mine">
+                <div class="looking-card__head">
+                    <strong>{{ sr.query }}</strong>
+                    <span class="status-badge status-badge--{{ sr.status }}">{{ sr.get_status_display }}</span>
+                </div>
+                {% if sr.description %}<p class="looking-card__desc">{{ sr.description }}</p>{% endif %}
+                <p class="looking-card__meta">{{ sr.created_at|date:"d.m.Y H:i" }}</p>
+                {% if sr.status == 'found' and sr.matched_listing %}
+                    <p class="looking-card__match"><a href="#offers">Есть отклик продавца — посмотрите выше</a></p>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p class="empty-hint">Вы ещё не оставляли заявок. Не нашли в <a href="{% url 'catalog:index' %}">каталоге</a>? Введите запрос в поиске и нажмите «Оставить заявку».</p>
+        {% endfor %}
+    </section>
+
+    {% if sent_offers %}
+    <section class="cabinet-section" id="sent">
+        <h2 class="section-title">Мои предложения <span class="cabinet-section__count">{{ sent_count }}</span></h2>
+        <p class="section-hint">Заявки других покупателей, на которые вы откликнулись</p>
+        {% for sr in sent_offers %}
+            <div class="looking-card">
+                <div class="looking-card__head">
+                    <strong>{{ sr.query }}</strong>
+                    <span class="status-badge status-badge--found">Ожидает покупателя</span>
+                </div>
+                <p class="looking-card__meta">
+                    Покупатель: {{ sr.user.first_name|default:sr.user.username }}
+                    · {{ sr.created_at|date:"d.m.Y H:i" }}
+                </p>
+                {% if sr.matched_listing %}
+                    <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
+                        <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                        <span>
+                            <strong>{{ sr.matched_listing.title }}</strong>
+                            <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
+                        </span>
+                    </a>
+                {% endif %}
+                <div class="looking-widget__actions">
+                    <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать покупателю</a>
+                    <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отозвать предложение?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Отозвать</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

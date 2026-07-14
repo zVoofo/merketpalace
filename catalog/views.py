@@ -143,11 +143,13 @@ def search_request_view(request):
         contact=request.POST.get('contact', ''),
     )
     messages.success(request, 'Заявка на поиск отправлена!')
+    if request.user.is_authenticated:
+        return redirect('seller:requests')
     return redirect('catalog:looking')
 
 
 def looking_board(request):
-    """Единый раздел «Ищу» — заявки, отклики покупателю и предложения продавца."""
+    """Публичная доска — заявки других покупателей (без своих)."""
     requests_qs = SearchRequest.objects.filter(
         status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS]
     ).select_related('user').order_by('-created_at')
@@ -158,41 +160,16 @@ def looking_board(request):
         cnt=Count('id')
     ).order_by('-cnt')[:15]
 
-    my_requests = []
-    incoming_offers = []
-    my_sent_offers = []
     seller_listings = []
-
-    if request.user.is_authenticated:
-        my_requests = list(SearchRequest.objects.filter(
-            user=request.user,
-        ).order_by('-created_at')[:20])
-        incoming_offers = list(SearchRequest.objects.filter(
-            user=request.user,
-            status=SearchRequest.Status.FOUND,
-            matched_listing__isnull=False,
-        ).select_related('matched_listing', 'matched_seller').prefetch_related(
-            'matched_listing__images',
-        ).order_by('-created_at'))
-        my_sent_offers = list(SearchRequest.objects.filter(
-            matched_seller=request.user,
-            status=SearchRequest.Status.FOUND,
-            matched_listing__isnull=False,
-        ).select_related('matched_listing', 'user').prefetch_related(
-            'matched_listing__images',
-        ).order_by('-created_at'))
-        if request.user.active_role == 'seller':
-            from listings.models import Listing
-            seller_listings = list(Listing.objects.filter(
-                user=request.user, status=Listing.Status.ACTIVE,
-            ).order_by('-updated_at'))
+    if request.user.is_authenticated and request.user.active_role == 'seller':
+        from listings.models import Listing
+        seller_listings = list(Listing.objects.filter(
+            user=request.user, status=Listing.Status.ACTIVE,
+        ).order_by('-updated_at'))
 
     return render(request, 'catalog/looking.html', {
-        'title': 'Ищу',
+        'title': 'Заявки покупателей',
         'search_requests': requests_qs,
-        'my_search_requests': my_requests,
-        'incoming_offers': incoming_offers,
-        'my_sent_offers': my_sent_offers,
         'seller_listings': seller_listings,
         'popular_searches': popular,
     })
@@ -220,10 +197,10 @@ def respond_to_search(request, pk):
             'search_offer',
             f'Отклик на заявку «{sr.query}»',
             f'Продавец {request.user.first_name or request.user.username} предложил: {listing.title}',
-            '/catalog/looking/#my-requests',
+            '/seller/requests/#offers',
         )
     messages.success(request, f'Вы предложили «{listing.title}» на заявку')
-    return redirect(reverse('catalog:looking') + '#my-offers')
+    return redirect(reverse('seller:requests') + '#sent')
 
 
 @login_required
@@ -233,7 +210,7 @@ def decline_search_offer(request, pk):
     sr = get_object_or_404(SearchRequest, pk=pk, user=request.user, status=SearchRequest.Status.FOUND)
     if not sr.matched_listing or not sr.matched_seller:
         messages.error(request, 'Нет активного предложения для отклонения')
-        return redirect(reverse('catalog:looking') + '#my-requests')
+        return redirect(reverse('seller:requests') + '#offers')
 
     listing_title = sr.matched_listing.title
     seller = sr.matched_seller
@@ -250,11 +227,11 @@ def decline_search_offer(request, pk):
         'search_offer',
         f'Предложение не подошло — «{query}»',
         f'Покупатель отклонил ваше предложение «{listing_title}». Заявка снова в разделе «Ищу».',
-        '/catalog/looking/#board',
+        '/catalog/looking/',
     )
 
     messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам.')
-    return redirect(reverse('catalog:looking') + '#my-requests')
+    return redirect(reverse('seller:requests') + '#offers')
 
 
 @login_required
@@ -266,7 +243,7 @@ def withdraw_search_offer(request, pk):
     )
     if not sr.matched_listing:
         messages.error(request, 'Нет активного предложения')
-        return redirect(reverse('catalog:looking') + '#my-offers')
+        return redirect(reverse('seller:requests') + '#sent')
 
     listing_title = sr.matched_listing.title
     buyer = sr.user
@@ -284,11 +261,11 @@ def withdraw_search_offer(request, pk):
             'search_offer',
             f'Предложение отозвано — «{query}»',
             f'Продавец отозвал предложение «{listing_title}». Можете дождаться других откликов.',
-            '/catalog/looking/#board',
+            '/seller/requests/',
         )
 
     messages.success(request, 'Предложение отозвано. Заявка снова в общем списке.')
-    return redirect(reverse('catalog:looking') + '#my-offers')
+    return redirect(reverse('seller:requests') + '#sent')
 
 
 def search_preview(request):

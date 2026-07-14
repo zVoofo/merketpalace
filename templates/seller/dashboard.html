@@ -2,7 +2,9 @@
 
 {% block content %}
 <div class="container">
-    <h1 style="margin-bottom:24px">Кабинет продавца</h1>
+    {% include 'includes/cabinet_nav.html' with active='dashboard' requests_badge=incoming_count %}
+
+    <h1 style="margin-top:20px;margin-bottom:24px">Кабинет продавца</h1>
     <div class="stats">
         <div class="stat"><div class="stat__num">{{ listings_count }}</div><div class="stat__label">Объявлений</div></div>
         <div class="stat"><div class="stat__num">{{ active_count }}</div><div class="stat__label">Активных</div></div>
@@ -13,22 +15,10 @@
     <div class="seller-actions" style="margin-bottom:24px">
         <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>
         <a href="{% url 'seller:listings' %}" class="btn btn--outline" style="margin-left:8px">Мои объявления</a>
+        <a href="{% url 'seller:requests' %}" class="btn btn--outline" style="margin-left:8px">
+            Мои заявки{% if incoming_count %} ({{ incoming_count }}){% endif %}
+        </a>
         {% if archived_count %}<a href="{% url 'seller:listings' %}#archive" class="btn btn--outline" style="margin-left:8px">Архив ({{ archived_count }})</a>{% endif %}
-    </div>
-
-    <div class="looking-hub-links">
-        <h2 class="section-title">Ищу</h2>
-        <p class="section-hint">Все заявки и отклики — на одной странице, без дублей</p>
-        <div class="looking-hub-links__row">
-            <a href="{% url 'catalog:looking' %}#board" class="btn btn--outline">
-                Заявки покупателей{% if open_looking_count %} ({{ open_looking_count }}){% endif %}
-            </a>
-            {% if sent_offers_count %}
-                <a href="{% url 'catalog:looking' %}#my-offers" class="btn btn--outline" style="margin-left:8px">
-                    Мои предложения ({{ sent_offers_count }})
-                </a>
-            {% endif %}
-        </div>
     </div>
 
     <h2 class="section-title">Что искали, но не нашли</h2>

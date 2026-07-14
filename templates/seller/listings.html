@@ -7,8 +7,8 @@
 {% block content %}
 
 <div class="container">
-
-    <h1>Мои объявления</h1>
+    {% include 'includes/cabinet_nav.html' with active='listings' requests_badge=incoming_count %}
+    <h1 style="margin-top:20px">Мои объявления</h1>
 
     <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
 
