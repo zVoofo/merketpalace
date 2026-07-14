@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Корзина</h1>
+    {% if not items %}
+        <p>Корзина пуста. <a href="{% url 'catalog:index' %}">В каталог</a></p>
+    {% else %}
+        <form method="POST" action="{% url 'cart_update' %}">
+            {% csrf_token %}
+            <table class="table">
+                <thead><tr><th>Товар</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr></thead>
+                <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td><a href="{% url 'listings:detail' item.listing.slug %}">{{ item.listing.title }}</a></td>
+                        <td>{{ item.price|floatformat:0 }} ₽</td>
+                        <td><input type="number" name="qty_{{ item.id }}" value="{{ item.quantity }}" min="0" style="width:70px"></td>
+                        <td>{{ item.subtotal|floatformat:0 }} ₽</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+                <button type="submit" class="btn btn--outline">Обновить</button>
+                <strong style="font-size:1.2rem">Итого: {{ total|floatformat:0 }} ₽</strong>
+                <a href="{% url 'orders:checkout' %}" class="btn">Оформить заказ</a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

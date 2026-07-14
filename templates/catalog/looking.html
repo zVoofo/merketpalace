@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:8px">Ищу</h1>
+    <p style="color:var(--muted);margin-bottom:24px">Покупатели ищут товары — продавцы могут предложить свои объявления</p>
+
+    <h2 style="margin-bottom:12px">Активные заявки</h2>
+    {% for sr in search_requests %}
+        <div style="background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow)">
+            <strong>{{ sr.query }}</strong>
+            <span class="card__badge" style="margin-left:8px">{{ sr.get_status_display }}</span>
+            {% if sr.description %}<p style="margin:8px 0;color:var(--muted)">{{ sr.description }}</p>{% endif %}
+            <p style="font-size:.85rem;color:var(--muted)">{{ sr.created_at|date:"d.m.Y H:i" }}
+                {% if sr.user %} · {{ sr.user.first_name|default:sr.user.username }}{% endif %}
+            </p>
+            {% if sr.matched_listing %}
+                <p style="margin-top:8px;color:var(--success)">✓ Предложено: <a href="{% url 'listings:detail' sr.matched_listing.slug %}">{{ sr.matched_listing.title }}</a></p>
+            {% elif user.is_authenticated and user.active_role == 'seller' %}
+                <form method="POST" action="{% url 'catalog:respond' sr.pk %}" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    {% csrf_token %}
+                    <select name="listing_id" required style="flex:1;min-width:200px;padding:8px">
+                        <option value="">Выберите ваше объявление...</option>
+                        {% for l in user.listings.all %}
+                            {% if l.status == 'active' %}<option value="{{ l.id }}">{{ l.title }}</option>{% endif %}
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn--sm">Предложить</button>
+                </form>
+            {% elif user.is_authenticated %}
+                <p style="margin-top:8px;font-size:.9rem"><a href="{% url 'accounts:profile' %}">Переключитесь в режим продавца</a>, чтобы предложить товар</p>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p>Заявок пока нет. <a href="{% url 'catalog:index' %}">Поищите в каталоге</a> — если не найдёте, оставьте заявку.</p>
+    {% endfor %}
+
+    <h2 style="margin:32px 0 12px">Популярные запросы без результата</h2>
+    <div class="cats">
+        {% for s in popular_searches %}
+            <a href="{% url 'catalog:index' %}?q={{ s.query|urlencode }}" class="cat-chip">{{ s.query }} ({{ s.cnt }})</a>
+        {% empty %}
+            <span style="color:var(--muted)">Данных пока нет</span>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

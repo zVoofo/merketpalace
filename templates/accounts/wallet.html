@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Кошелёк</h1>
+    <div class="stats" style="margin-bottom:24px">
+        <div class="stat">
+            <div class="stat__num">{{ wallet.balance|floatformat:0 }} ₽</div>
+            <div class="stat__label">Текущий баланс</div>
+        </div>
+    </div>
+
+    <div class="form" style="margin-bottom:32px">
+        <h2 style="margin-bottom:16px;font-size:1.1rem">Пополнить кошелёк</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form__group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Пополнить</button>
+        </form>
+        <p style="margin-top:12px;font-size:.85rem;color:var(--muted)">Демо-режим: пополнение мгновенное, без реального списания.</p>
+    </div>
+
+    <h2 style="margin-bottom:12px">История операций</h2>
+    <table class="table">
+        <thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Описание</th></tr></thead>
+        <tbody>
+        {% for tx in transactions %}
+            <tr>
+                <td>{{ tx.created_at|date:"d.m.Y H:i" }}</td>
+                <td>{{ tx.get_tx_type_display }}</td>
+                <td>{% if tx.tx_type == 'deposit' %}+{% else %}-{% endif %}{{ tx.amount|floatformat:0 }} ₽</td>
+                <td>{{ tx.description }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">Операций пока нет</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

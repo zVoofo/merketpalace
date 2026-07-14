@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Кабинет продавца</h1>
+    <div class="stats">
+        <div class="stat"><div class="stat__num">{{ listings_count }}</div><div class="stat__label">Объявлений</div></div>
+        <div class="stat"><div class="stat__num">{{ active_count }}</div><div class="stat__label">Активных</div></div>
+        <div class="stat"><div class="stat__num">{{ total_views }}</div><div class="stat__label">Просмотров</div></div>
+        <div class="stat"><div class="stat__num">{{ orders_count }}</div><div class="stat__label">Заказов</div></div>
+    </div>
+    <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>
+    <a href="{% url 'seller:listings' %}" class="btn btn--outline" style="margin-left:8px">Мои объявления</a>
+    <h2 style="margin:32px 0 12px">Что искали, но не нашли</h2>
+    <table class="table">
+        {% for s in failed_searches %}<tr><td>{{ s.query }}</td><td>{{ s.cnt }}</td></tr>{% empty %}<tr><td colspan="2">Нет данных</td></tr>{% endfor %}
+    </table>
+</div>
+{% endblock %}

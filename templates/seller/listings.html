@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Мои объявления</h1>
+    <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
+    <table class="table">
+        <thead><tr><th>Название</th><th>Цена</th><th>Остаток</th><th>Статус</th><th></th></tr></thead>
+        {% for l in listings %}
+            <tr>
+                <td><a href="{% url 'listings:detail' l.slug %}">{{ l.title }}</a></td>
+                <td>{{ l.price|floatformat:0 }} ₽</td>
+                <td>{{ l.quantity }}</td>
+                <td>{{ l.get_status_display }}</td>
+                <td><a href="{% url 'listings:edit' l.pk %}">Редактировать</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Нет объявлений</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

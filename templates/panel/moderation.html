@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Модерация</h1>
+    <table class="table" style="margin-top:20px">
+        {% for item in queue %}
+            <tr>
+                <td>{{ item.listing.title }}</td>
+                <td>{{ item.reason }}</td>
+                <td>
+                    <a href="{% url 'panel:approve' item.pk %}" class="btn btn--sm">Одобрить</a>
+                    <a href="{% url 'panel:reject' item.pk %}" class="btn btn--sm btn--danger">Отклонить</a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td>Очередь пуста</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

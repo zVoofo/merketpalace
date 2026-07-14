@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Создать объявление</h1>
+    <div class="form form--wide">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form__group"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div style="color:var(--error)">{{ field.errors.0 }}</div>{% endif %}</div>
+            {% endfor %}
+            <div class="form__group">
+                <label>Фото и видео (от 1 до 10)</label>
+                <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" multiple required>
+                <p style="font-size:.8rem;color:var(--muted);margin-top:6px">JPG, PNG, WebP, GIF, MP4, WebM — до 50 МБ каждый</p>
+            </div>
+            <button type="submit" class="btn">Опубликовать</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container catalog-layout">
+    <aside class="filters">
+        <h3>Фильтры</h3>
+        <form method="GET">
+            {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
+            <div class="form__group">
+                <label>Категория</label>
+                <select name="category" onchange="this.form.submit()">
+                    <option value="">Все</option>
+                    {% for c in categories %}<option value="{{ c.id }}" {% if filters.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form__group">
+                <label>Бренд</label>
+                <select name="brand">
+                    <option value="">Все</option>
+                    {% for b in brands %}<option value="{{ b.id }}" {% if filters.brand == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form__group">
+                <label>Цена, ₽</label>
+                <div class="price-range">
+                    <input type="range" id="price-min-range" min="0" max="{{ price_slider_max }}" step="100" value="{{ filters.price_min|default:0 }}">
+                    <input type="range" id="price-max-range" min="0" max="{{ price_slider_max }}" step="100" value="{{ filters.price_max|default:price_slider_max }}">
+                </div>
+                <div class="form__row" style="margin-top:8px">
+                    <input type="number" name="price_min" id="price-min-input" value="{{ filters.price_min|default:'' }}" placeholder="От" min="0">
+                    <input type="number" name="price_max" id="price-max-input" value="{{ filters.price_max|default:'' }}" placeholder="До" min="0">
+                </div>
+            </div>
+            <div class="form__group"><label><input type="checkbox" name="in_stock" {% if filters.in_stock %}checked{% endif %}> Только в наличии</label></div>
+            <button type="submit" class="btn" style="width:100%">Применить</button>
+        </form>
+
+        {% if preview_image and search_query %}
+        <div class="search-preview" style="margin-top:20px">
+            <h3 style="font-size:.95rem;margin-bottom:8px">
+                {% if preview_source == 'web' %}Фото товара{% elif preview_source == 'generated' %}Пример товара{% else %}Превью{% endif %}
+            </h3>
+            <div class="search-preview__frame">
+                <img src="{{ preview_image }}" alt="{{ search_query }}" width="400" height="400" decoding="async">
+            </div>
+            <p style="font-size:.8rem;color:var(--muted);margin-top:6px">«{{ search_query }}»</p>
+        </div>
+        {% endif %}
+    </aside>
+
+    <section>
+        <h1>{{ title }}</h1>
+        <p style="color:var(--muted);margin:12px 0 20px">Найдено: {{ total }}</p>
+
+        {% if search_invalid %}
+            <div class="alert alert--error">{{ search_error }}</div>
+            <p style="color:var(--muted);margin-top:12px">Примеры: «тормозные колодки BMW», «масляный фильтр», «iPhone 15»</p>
+        {% elif zero_result %}
+            <div class="zero-result">
+                <h2>Товар не найден на MarketPlace</h2>
+                {% if preview_image %}
+                    <div class="search-preview__frame search-preview__frame--center">
+                        <img src="{{ preview_image }}" alt="{{ search_query }}" width="200" height="200" decoding="async">
+                    </div>
+                {% endif %}
+                <form method="POST" action="{% url 'catalog:search_request' %}" style="max-width:400px;margin:20px auto">
+                    {% csrf_token %}
+                    <input type="hidden" name="query" value="{{ search_query }}">
+                    <div class="form__group"><textarea name="description" placeholder="Опишите что ищете..."></textarea></div>
+                    <button type="submit" class="btn">Оставить заявку «Ищу»</button>
+                </form>
+            </div>
+
+            {% if external_offers %}
+            <h2 style="margin:32px 0 16px">Найдено на других площадках</h2>
+            <div class="grid">
+                {% for offer in external_offers %}
+                    <a href="{{ offer.url }}" target="_blank" rel="noopener" class="card">
+                        {% if offer.image %}
+                            <img class="card__img" src="{{ offer.image }}" alt="{{ offer.source }}" loading="lazy" decoding="async">
+                        {% else %}
+                            <img class="card__img" src="{% static 'img/no-photo.svg' %}" alt="">
+                        {% endif %}
+                        <div class="card__body">
+                            <div class="card__title">{{ offer.title }}</div>
+                            <span class="card__badge">Открыть на {{ offer.source }} →</span>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="grid">
+                {% for item in listings %}
+                    <a href="{% url 'listings:detail' item.slug %}" class="card">
+                        <img class="card__img" src="{% listing_image_url item %}" alt="" loading="lazy">
+                        <div class="card__body">
+                            <div class="card__title">{{ item.title }}</div>
+                            <div class="card__price">{{ item.price|floatformat:0 }} ₽</div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

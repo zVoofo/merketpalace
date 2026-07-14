@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    <h1>Редактировать</h1>
+    <div class="form form--wide" style="margin-top:24px">
+        {% if listing.images.exists %}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                {% for img in listing.images.all %}
+                    {% if img.media_type == 'video' %}
+                        <video src="{{ img.file.url }}" style="width:80px;height:80px;object-fit:cover;border-radius:8px" muted></video>
+                    {% else %}
+                        <img src="{{ img.file.url }}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px">
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Сейчас: {{ listing.images.count }} / 10</p>
+        {% endif %}
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}<div class="form__group"><label>{{ field.label }}</label>{{ field }}</div>{% endfor %}
+            <div class="form__group">
+                <label>Добавить фото/видео</label>
+                <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" multiple>
+                <p style="font-size:.8rem;color:var(--muted);margin-top:6px">Всего не больше 10 файлов</p>
+            </div>
+            <button type="submit" class="btn">Сохранить</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

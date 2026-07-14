@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Заказ {{ order.order_number }}</h1>
+    <div style="background:var(--card);padding:24px;border-radius:var(--radius);margin-top:20px;box-shadow:var(--shadow)">
+        <p><strong>Статус:</strong> {{ order.get_status_display }}</p>
+        <p><strong>Оплата:</strong> {{ order.get_payment_method_display|default:"—" }}</p>
+        <p><strong>Адрес:</strong> {{ order.delivery_address }}</p>
+        <p><strong>Итого:</strong> {{ order.total|floatformat:0 }} ₽</p>
+        <ul>{% for item in order.items.all %}<li>{{ item.title }} × {{ item.quantity }} — {{ item.total|floatformat:0 }} ₽</li>{% endfor %}</ul>
+        {% if order.escrow_held %}<p style="color:var(--accent)">💰 Безопасная сделка — средства заморожены</p>{% endif %}
+    </div>
+</div>
+{% endblock %}

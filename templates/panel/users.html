@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Пользователи</h1>
+    <table class="table" style="margin-top:20px">
+        {% for u in users %}
+            <tr>
+                <td>{{ u.full_name }}</td>
+                <td>{{ u.email }}</td>
+                <td>{% if u.is_verified %}✓{% else %}<a href="{% url 'panel:verify_user' u.pk %}" class="btn btn--sm">Верифицировать</a>{% endif %}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    {% if listing %}
+        <p style="margin-bottom:12px"><a href="{% url 'listings:detail' listing.slug %}">← {{ listing.title }}</a></p>
+    {% else %}
+        <p style="margin-bottom:12px"><a href="{% url 'chat:index' %}">← Все сообщения</a> · <strong>Поддержка</strong></p>
+    {% endif %}
+    <div class="chat-box" id="chat-box" data-csrf="{{ csrf_token }}">
+        <div class="chat-messages" id="chat-messages">
+            {% for m in chat_messages %}
+                {% if not m.is_deleted %}
+                <div class="chat-msg {% if m.sender == user %}chat-msg--own{% endif %}"
+                     data-msg-id="{{ m.pk }}"
+                     data-own="{% if m.sender == user %}1{% else %}0{% endif %}"
+                     data-has-attachment="{% if m.attachment %}1{% else %}0{% endif %}">
+                    <div class="chat-msg__bubble">
+                        {% if m.attachment %}
+                            {% if m.attachment_type == 'image' %}
+                                <a href="{{ m.attachment.url }}" target="_blank"><img src="{{ m.attachment.url }}" alt="" class="chat-attach-img"></a>
+                            {% elif m.attachment_type == 'video' %}
+                                <video src="{{ m.attachment.url }}" controls class="chat-attach-video"></video>
+                            {% else %}
+                                <a href="{{ m.attachment.url }}" target="_blank" class="chat-attach-file">📎 {{ m.attachment_name|default:"Файл" }}</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if m.body %}<span class="chat-msg__text">{{ m.body }}</span>{% endif %}
+                        {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="chat-msg chat-msg--deleted"><div class="chat-msg__bubble">Сообщение удалено</div></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <form method="POST" class="chat-input" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label class="chat-attach-btn" title="Прикрепить файл">📎<input type="file" name="attachment" accept="image/*,video/*,.pdf,.doc,.docx,.zip" hidden></label>
+            <input type="text" name="body" placeholder="Сообщение..." autocomplete="off">
+            <button type="submit" class="btn btn--sm">Отправить</button>
+        </form>
+    </div>
+    <div id="chat-context-menu" class="chat-context-menu" hidden>
+        <button type="button" data-action="edit">Редактировать</button>
+        <button type="button" data-action="delete">Удалить</button>
+    </div>
+</div>
+{% endblock %}

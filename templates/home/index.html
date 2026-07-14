@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h1>Торговая площадка нового поколения</h1>
+        <p>Покупайте и продавайте товары и услуги. Умный поиск по артикулам, VIN-коду и характеристикам.</p>
+        <a href="{% url 'catalog:index' %}" class="btn">Перейти в каталог</a>
+    </div>
+</section>
+
+<div class="container">
+    <h2 style="margin-bottom:16px">Категории</h2>
+    <div class="cats">
+        {% for cat in categories %}
+            <a href="{% url 'catalog:index' %}?category={{ cat.id }}" class="cat-chip">{{ cat.name }}</a>
+            {% for child in cat.children.all %}
+                <a href="{% url 'catalog:index' %}?category={{ child.id }}" class="cat-chip">{{ child.name }}</a>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <h2 style="margin-bottom:16px">Популярные объявления</h2>
+    <div class="grid">
+        {% for item in listings %}
+            <a href="{% url 'listings:detail' item.slug %}" class="card">
+                <img class="card__img" src="{% listing_image_url item %}" alt="" loading="lazy">
+                <div class="card__body">
+                    <div class="card__title">{{ item.title }}</div>
+                    <div>
+                        <span class="card__price">{{ item.price|floatformat:0 }} ₽</span>
+                        {% if item.old_price %}<span class="card__old">{{ item.old_price|floatformat:0 }} ₽</span>{% endif %}
+                    </div>
+                </div>
+            </a>
+        {% empty %}
+            <p style="grid-column:1/-1;text-align:center;color:var(--muted)">Нет объявлений. Запустите: <code>python manage.py seed</code></p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
