@@ -9,9 +9,31 @@ from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_POST
 from .models import Category, Brand, CarMake, SearchQuery, SearchRequest
 from .validators import is_valid_search_query
+from .filter_params import MAX_FILTER_PRICE, parse_catalog_filters
 from .search_images import get_cached_search_image, get_preview_bytes
 from .external import get_external_offers
 from accounts.notifications import notify
+
+
+def _filters_for_template(cleaned: dict) -> dict:
+    """Значения фильтров для шаблона (строки для сравнения в select/checkbox)."""
+    return {
+        'q': cleaned['q'],
+        'category': cleaned['category'] or '',
+        'brand': cleaned['brand'] or '',
+        'type': cleaned['type'] or '',
+        'condition': cleaned['condition'] or '',
+        'make': cleaned['make'] or '',
+        'rating': cleaned['rating'] or '',
+        'sort': cleaned['sort'],
+        'price_min': cleaned['price_min'] if cleaned['price_min'] is not None else '',
+        'price_max': cleaned['price_max'] if cleaned['price_max'] is not None else '',
+        'in_stock': '1' if cleaned['in_stock'] else '',
+        'preorder': '1' if cleaned['preorder'] else '',
+        'warranty': '1' if cleaned['warranty'] else '',
+        'sale': '1' if cleaned['sale'] else '',
+        'photo': '1' if cleaned['photo'] else '',
+    }
 
 
 def _catalog_without(get_params, *keys):
@@ -50,21 +72,33 @@ def home(request):
 def catalog_index(request):
     from listings.models import Listing
 
-    q = request.GET.get('q', '').strip()
-    category_id = request.GET.get('category')
-    brand_id = request.GET.get('brand')
-    listing_type = request.GET.get('type')
-    condition = request.GET.get('condition')
-    price_min = request.GET.get('price_min')
-    price_max = request.GET.get('price_max')
-    in_stock = request.GET.get('in_stock')
-    has_warranty = request.GET.get('warranty')
-    on_sale = request.GET.get('sale')
-    make_id = request.GET.get('make')
-    min_rating = request.GET.get('rating')
-    with_photo = request.GET.get('photo')
-    preorder = request.GET.get('preorder')
-    sort = request.GET.get('sort', 'new')
+    categories_qs = Category.objects.filter(is_active=True, parent__isnull=True).prefetch_related('children')
+    brands_qs = Brand.objects.filter(is_active=True).order_by('name')
+    car_makes_qs = CarMake.objects.all().order_by('name')
+
+    price_bounds = Listing.objects.filter(status='active').aggregate(
+        min_price=Min('price'),
+        max_price=Max('price'),
+    )
+    price_min_default = int(price_bounds.get('min_price') or 0)
+    price_max_default = int(price_bounds.get('max_price') or 500000)
+    if price_max_default < 10000:
+        price_max_default = 500000
+
+    category_ids = {str(pk) for pk in Category.objects.filter(is_active=True).values_list('pk', flat=True)}
+    brand_ids = {str(pk) for pk in brands_qs.values_list('pk', flat=True)}
+    make_ids = {str(pk) for pk in car_makes_qs.values_list('pk', flat=True)}
+
+    cleaned, filter_errors = parse_catalog_filters(
+        request.GET,
+        category_ids=category_ids,
+        brand_ids=brand_ids,
+        make_ids=make_ids,
+        price_cap=price_max_default,
+    )
+
+    q = cleaned['q']
+    sort = cleaned['sort']
 
     search_valid = True
     search_error = ''
@@ -72,10 +106,8 @@ def catalog_index(request):
         search_valid, search_error = is_valid_search_query(q)
 
     qs = Listing.objects.filter(status='active').select_related('category', 'brand').prefetch_related('images')
-
-    preview_image = None
-    preview_source = None
     external_offers = []
+    preview_source = None
 
     if q and search_valid:
         qs = qs.filter(
@@ -88,34 +120,31 @@ def catalog_index(request):
     elif q and not search_valid:
         qs = qs.none()
 
-    if category_id:
-        qs = qs.filter(category_id=category_id)
-    if brand_id:
-        qs = qs.filter(brand_id=brand_id)
-    if listing_type:
-        qs = qs.filter(type=listing_type)
-    if price_min:
-        qs = qs.filter(price__gte=price_min)
-    if price_max:
-        qs = qs.filter(price__lte=price_max)
-    if in_stock:
+    if cleaned['category']:
+        qs = qs.filter(category_id=cleaned['category'])
+    if cleaned['brand']:
+        qs = qs.filter(brand_id=cleaned['brand'])
+    if cleaned['type']:
+        qs = qs.filter(type=cleaned['type'])
+    if cleaned['price_min'] is not None:
+        qs = qs.filter(price__gte=cleaned['price_min'])
+    if cleaned['price_max'] is not None:
+        qs = qs.filter(price__lte=cleaned['price_max'])
+    if cleaned['in_stock']:
         qs = qs.filter(quantity__gt=0)
-    if has_warranty:
+    if cleaned['warranty']:
         qs = qs.filter(has_warranty=True)
-    if on_sale:
+    if cleaned['sale']:
         qs = qs.filter(old_price__isnull=False, old_price__gt=F('price'))
-    if condition:
-        qs = qs.filter(condition=condition)
-    if make_id:
-        qs = qs.filter(car_compat__make_id=make_id)
-    if min_rating:
-        try:
-            qs = qs.filter(rating_avg__gte=float(min_rating), rating_count__gt=0)
-        except (TypeError, ValueError):
-            pass
-    if with_photo:
+    if cleaned['condition']:
+        qs = qs.filter(condition=cleaned['condition'])
+    if cleaned['make']:
+        qs = qs.filter(car_compat__make_id=cleaned['make'])
+    if cleaned['rating']:
+        qs = qs.filter(rating_avg__gte=float(cleaned['rating']), rating_count__gt=0)
+    if cleaned['photo']:
         qs = qs.filter(images__isnull=False)
-    if preorder:
+    if cleaned['preorder']:
         qs = qs.filter(quantity=0)
 
     order_map = {
@@ -137,78 +166,71 @@ def catalog_index(request):
         )
 
     paginator = Paginator(qs, settings.ITEMS_PER_PAGE)
-    page = paginator.get_page(request.GET.get('page'))
-
-    price_bounds = Listing.objects.filter(status='active').aggregate(
-        min_price=Min('price'),
-        max_price=Max('price'),
-    )
-    price_min_default = int(price_bounds.get('min_price') or 0)
-    price_max_default = int(price_bounds.get('max_price') or 500000)
-    if price_max_default < 10000:
-        price_max_default = 500000
+    page = paginator.get_page(cleaned['page'])
 
     active_filters = []
     if q:
         active_filters.append(('q', f'«{q}»'))
-    if category_id:
-        cat = Category.objects.filter(pk=category_id).first()
+    if cleaned['category']:
+        cat = Category.objects.filter(pk=cleaned['category']).first()
         if cat:
             active_filters.append(('category', cat.name))
-    if brand_id:
-        br = Brand.objects.filter(pk=brand_id).first()
+    if cleaned['brand']:
+        br = Brand.objects.filter(pk=cleaned['brand']).first()
         if br:
             active_filters.append(('brand', br.name))
-    if listing_type:
-        active_filters.append(('type', 'Товар' if listing_type == 'product' else 'Услуга'))
-    if condition:
+    if cleaned['type']:
+        active_filters.append(('type', 'Товар' if cleaned['type'] == 'product' else 'Услуга'))
+    if cleaned['condition']:
         labels = {'new': 'Новый', 'used': 'Б/У', 'refurbished': 'Восстановленный'}
-        active_filters.append(('condition', labels.get(condition, condition)))
-    if price_min:
-        active_filters.append(('price_min', f'от {price_min} ₽'))
-    if price_max:
-        active_filters.append(('price_max', f'до {price_max} ₽'))
-    if in_stock:
+        active_filters.append(('condition', labels.get(cleaned['condition'], cleaned['condition'])))
+    if cleaned['price_min'] is not None:
+        active_filters.append(('price_min', f'от {cleaned["price_min"]} ₽'))
+    if cleaned['price_max'] is not None:
+        active_filters.append(('price_max', f'до {cleaned["price_max"]} ₽'))
+    if cleaned['in_stock']:
         active_filters.append(('in_stock', 'В наличии'))
-    if has_warranty:
+    if cleaned['warranty']:
         active_filters.append(('warranty', 'С гарантией'))
-    if on_sale:
+    if cleaned['sale']:
         active_filters.append(('sale', 'Со скидкой'))
-    if make_id:
-        mk = CarMake.objects.filter(pk=make_id).first()
+    if cleaned['make']:
+        mk = CarMake.objects.filter(pk=cleaned['make']).first()
         if mk:
             active_filters.append(('make', mk.name))
-    if min_rating:
-        active_filters.append(('rating', f'Рейтинг от {min_rating}★'))
-    if with_photo:
+    if cleaned['rating']:
+        active_filters.append(('rating', f'Рейтинг от {cleaned["rating"]}★'))
+    if cleaned['photo']:
         active_filters.append(('photo', 'С фото'))
-    if preorder:
+    if cleaned['preorder']:
         active_filters.append(('preorder', 'Под заказ'))
 
     filter_remove_urls = {key: _catalog_without(request.GET, key) for key, _ in active_filters}
+    template_filters = _filters_for_template(cleaned)
 
     return render(request, 'catalog/index.html', {
         'title': 'Каталог',
         'listings': page,
         'total': total,
-        'categories': Category.objects.filter(is_active=True, parent__isnull=True).prefetch_related('children'),
-        'brands': Brand.objects.filter(is_active=True).order_by('name'),
-        'car_makes': CarMake.objects.all().order_by('name'),
-        'filters': request.GET,
+        'categories': categories_qs,
+        'brands': brands_qs,
+        'car_makes': car_makes_qs,
+        'filters': template_filters,
         'active_filters': active_filters,
         'filter_remove_urls': filter_remove_urls,
         'has_active_filters': bool(active_filters),
+        'filter_errors': filter_errors,
         'sort': sort,
         'zero_result': bool(q) and search_valid and total == 0,
         'search_invalid': bool(q) and not search_valid,
         'search_error': search_error,
-        'preview_image': preview_image,
         'show_search_preview': bool(q) and search_valid,
         'preview_source': preview_source,
         'external_offers': external_offers,
         'search_query': q,
         'price_slider_max': price_max_default,
         'price_slider_min': price_min_default,
+        'price_filter_max': MAX_FILTER_PRICE,
     })
 
 

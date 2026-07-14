@@ -2,11 +2,14 @@ from django import forms
 
 from catalog.models import CarMake, CarModel
 from catalog.validators import is_valid_listing_text
+from catalog.filter_params import MAX_FILTER_PRICE
 from .models import Listing, Review, ListingCarCompat
 
 MAX_MEDIA = 10
 MIN_MEDIA = 1
 MAX_REVIEW_MEDIA = 5
+MAX_LISTING_PRICE = MAX_FILTER_PRICE
+MAX_LISTING_QUANTITY = 999_999
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
 ALLOWED_VIDEO_TYPES = {'video/mp4', 'video/webm', 'video/quicktime'}
 
@@ -95,6 +98,11 @@ class ListingForm(forms.ModelForm):
         self.fields['warranty_text'].required = False
         self.fields['return_policy'].required = False
         self.fields['quantity'].widget.attrs.setdefault('min', 0)
+        self.fields['quantity'].widget.attrs.setdefault('max', MAX_LISTING_QUANTITY)
+        self.fields['price'].widget.attrs.setdefault('min', 1)
+        self.fields['price'].widget.attrs.setdefault('max', MAX_LISTING_PRICE)
+        self.fields['old_price'].widget.attrs.setdefault('min', 1)
+        self.fields['old_price'].widget.attrs.setdefault('max', MAX_LISTING_PRICE)
 
         if self.instance and self.instance.pk:
             compat = self.instance.car_compat.select_related('make', 'model').first()
@@ -130,6 +138,11 @@ class ListingForm(forms.ModelForm):
         if cleaned.get('has_warranty') and not (cleaned.get('warranty_text') or '').strip():
             self.add_error('warranty_text', 'Укажите условия гарантии')
 
+        price = cleaned.get('price')
+        old_price = cleaned.get('old_price')
+        if old_price is not None and price is not None and old_price <= price:
+            self.add_error('old_price', 'Старая цена должна быть выше текущей для отображения скидки')
+
         return cleaned
 
     def clean_title(self):
@@ -149,9 +162,37 @@ class ListingForm(forms.ModelForm):
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
-        if price is not None and price <= 0:
+        if price is None:
+            return price
+        if price <= 0:
             raise forms.ValidationError('Цена должна быть больше 0')
+        if price > MAX_LISTING_PRICE:
+            raise forms.ValidationError(
+                f'Цена слишком большая (максимум {MAX_LISTING_PRICE:,} ₽)'.replace(',', ' ')
+            )
         return price
+
+    def clean_old_price(self):
+        old_price = self.cleaned_data.get('old_price')
+        if old_price is None:
+            return old_price
+        if old_price <= 0:
+            raise forms.ValidationError('Старая цена должна быть больше 0')
+        if old_price > MAX_LISTING_PRICE:
+            raise forms.ValidationError(
+                f'Старая цена слишком большая (максимум {MAX_LISTING_PRICE:,} ₽)'.replace(',', ' ')
+            )
+        return old_price
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get('quantity')
+        if quantity is None:
+            return quantity
+        if quantity < 0:
+            raise forms.ValidationError('Количество не может быть отрицательным')
+        if quantity > MAX_LISTING_QUANTITY:
+            raise forms.ValidationError(f'Слишком большое количество (максимум {MAX_LISTING_QUANTITY:,})'.replace(',', ' '))
+        return quantity
 
     def save_car_compat(self, listing):
         listing.car_compat.all().delete()

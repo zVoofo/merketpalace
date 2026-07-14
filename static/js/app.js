@@ -29,11 +29,41 @@ document.getElementById('burger')?.addEventListener('click', () => {
 
 /* --- Фильтр цены --- */
 (function initPriceRange() {
+  const form = document.getElementById('catalog-filters');
   const minRange = document.getElementById('price-min-range');
   const maxRange = document.getElementById('price-max-range');
   const minInput = document.getElementById('price-min-input');
   const maxInput = document.getElementById('price-max-input');
   if (!minRange || !maxRange || !minInput || !maxInput) return;
+
+  const absMax = parseInt(form?.dataset.priceMax || maxInput.max || maxRange.max, 10) || 50000000;
+  const errorsBox = form?.querySelector('.filter-panel__errors');
+
+  const showError = (msg) => {
+    if (!form) return false;
+    let box = errorsBox;
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'alert alert--error filter-panel__errors';
+      box.setAttribute('role', 'alert');
+      form.insertBefore(box, form.firstChild.nextSibling);
+    }
+    box.innerHTML = `<p>${msg}</p>`;
+    return false;
+  };
+
+  const clearErrors = () => {
+    if (errorsBox) errorsBox.remove();
+  };
+
+  const clampPrice = (raw) => {
+    if (raw === '' || raw == null) return null;
+    const n = parseInt(String(raw).replace(/\s/g, ''), 10);
+    if (Number.isNaN(n)) return 'nan';
+    if (n < 0) return 0;
+    if (n > absMax) return absMax;
+    return n;
+  };
 
   const syncFromRange = () => {
     let lo = parseInt(minRange.value, 10) || 0;
@@ -50,17 +80,60 @@ document.getElementById('burger')?.addEventListener('click', () => {
 
   const syncFromInput = () => {
     const max = parseInt(maxRange.max, 10);
-    let lo = parseInt(minInput.value, 10);
-    let hi = parseInt(maxInput.value, 10);
-    if (!isNaN(lo)) minRange.value = Math.min(lo, max);
-    if (!isNaN(hi)) maxRange.value = Math.min(hi, max);
-    else maxRange.value = max;
+    let lo = clampPrice(minInput.value);
+    let hi = clampPrice(maxInput.value);
+    if (lo === 'nan') return;
+    if (hi === 'nan') return;
+    if (lo != null) {
+      lo = Math.min(lo, absMax);
+      minInput.value = lo;
+      minRange.value = Math.min(lo, max);
+    }
+    if (hi != null) {
+      hi = Math.min(hi, absMax);
+      maxInput.value = hi;
+      maxRange.value = Math.min(hi, max);
+    } else {
+      maxRange.value = max;
+    }
+    if (lo != null && hi != null && lo > hi) {
+      if (document.activeElement === minInput) {
+        maxInput.value = lo;
+        maxRange.value = Math.min(lo, max);
+      } else {
+        minInput.value = hi;
+        minRange.value = Math.min(hi, max);
+      }
+    }
+  };
+
+  const validateBeforeSubmit = () => {
+    clearErrors();
+    const lo = clampPrice(minInput.value);
+    const hi = clampPrice(maxInput.value);
+    if (lo === 'nan') return showError('Минимальная цена должна быть целым числом');
+    if (hi === 'nan') return showError('Максимальная цена должна быть целым числом');
+    if (lo != null && hi != null && lo > hi) {
+      minInput.value = hi;
+      maxInput.value = lo;
+    }
+    const inStock = form?.querySelector('input[name="in_stock"]');
+    const preorder = form?.querySelector('input[name="preorder"]');
+    if (inStock?.checked && preorder?.checked) {
+      preorder.checked = false;
+    }
+    return true;
   };
 
   minRange.addEventListener('input', syncFromRange);
   maxRange.addEventListener('input', syncFromRange);
   minInput.addEventListener('input', syncFromInput);
   maxInput.addEventListener('input', syncFromInput);
+  minInput.addEventListener('blur', syncFromInput);
+  maxInput.addEventListener('blur', syncFromInput);
+  form?.addEventListener('submit', (e) => {
+    if (!validateBeforeSubmit()) e.preventDefault();
+  });
 })();
 
 /* --- Мобильная панель фильтров каталога --- */

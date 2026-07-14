@@ -13,8 +13,14 @@
                 <a href="{% url 'catalog:index' %}{% if filters.q %}?q={{ filters.q|urlencode }}{% endif %}" class="filter-panel__reset">Сбросить</a>
             {% endif %}
         </div>
-        <form method="GET" class="filter-panel__form" id="catalog-filters">
+        <form method="GET" class="filter-panel__form" id="catalog-filters" data-price-max="{{ price_filter_max }}">
             {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
+
+            {% if filter_errors %}
+            <div class="alert alert--error filter-panel__errors" role="alert">
+                {% for err in filter_errors %}<p>{{ err }}</p>{% endfor %}
+            </div>
+            {% endif %}
 
             <fieldset class="filter-panel__group">
                 <legend class="filter-panel__group-title">Показ</legend>
@@ -101,9 +107,9 @@
                         <input type="range" id="price-max-range" min="{{ price_slider_min }}" max="{{ price_slider_max }}" step="100" value="{{ filters.price_max|default:price_slider_max }}">
                     </div>
                     <div class="filter-panel__price-inputs">
-                        <input type="number" name="price_min" id="price-min-input" value="{{ filters.price_min|default:'' }}" placeholder="От" min="0" class="filter-panel__input">
+                        <input type="number" name="price_min" id="price-min-input" value="{{ filters.price_min|default:'' }}" placeholder="От" min="0" max="{{ price_filter_max }}" step="1" class="filter-panel__input">
                         <span class="filter-panel__dash">—</span>
-                        <input type="number" name="price_max" id="price-max-input" value="{{ filters.price_max|default:'' }}" placeholder="До" min="0" class="filter-panel__input">
+                        <input type="number" name="price_max" id="price-max-input" value="{{ filters.price_max|default:'' }}" placeholder="До" min="0" max="{{ price_filter_max }}" step="1" class="filter-panel__input">
                     </div>
                 </div>
             </fieldset>
