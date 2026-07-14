@@ -23,13 +23,22 @@ def normalize_notification_link(link: str) -> str:
     return reverse('home')
 
 
+def _trunc(text: str, max_len: int) -> str:
+    text = (text or '').strip()
+    if len(text) <= max_len:
+        return text
+    if max_len <= 1:
+        return text[:max_len]
+    return text[: max_len - 1] + '…'
+
+
 def notify(user, ntype: str, title: str, body: str = '', link: str = ''):
     if not user or not getattr(user, 'pk', None):
         return
     Notification.objects.create(
         user=user,
         ntype=ntype,
-        title=title,
+        title=_trunc(title, 255),
         body=body,
         link=normalize_notification_link(link) if link else '',
     )

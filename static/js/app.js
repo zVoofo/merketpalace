@@ -431,11 +431,6 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   if (!box) return;
 
   const scrollToBottom = (smooth) => {
-    const end = document.getElementById('chat-end');
-    if (end) {
-      end.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'instant' });
-      return;
-    }
     const top = box.scrollHeight - box.clientHeight;
     box.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
   };
@@ -449,32 +444,51 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     el.addEventListener('load', () => scrollToBottom(false));
   });
 
-  // Перед отправкой — чтобы после перезагрузки оставаться внизу (браузер запомнит якорь)
+  const markScrollBottom = () => sessionStorage.setItem('chat-scroll-bottom', '1');
+
   const form = document.getElementById('chat-form');
-  form?.addEventListener('submit', () => {
-    sessionStorage.setItem('chat-scroll-bottom', '1');
-  });
+  form?.addEventListener('submit', markScrollBottom);
 
   if (sessionStorage.getItem('chat-scroll-bottom')) {
     sessionStorage.removeItem('chat-scroll-bottom');
     setTimeout(() => scrollToBottom(false), 0);
-    setTimeout(() => scrollToBottom(false), 100);
+    setTimeout(() => scrollToBottom(false), 80);
+    setTimeout(() => scrollToBottom(false), 250);
   }
 })();
 
-/* --- Поддержка: быстрые вопросы --- */
+/* --- Поддержка: быстрые вопросы (без скачка вверх) --- */
 (function initSupportQuick() {
   const grid = document.getElementById('support-quick');
   const form = document.getElementById('chat-form');
-  const input = document.getElementById('chat-body');
-  if (!grid || !form || !input) return;
+  if (!grid || !form) return;
 
-  grid.addEventListener('click', (e) => {
+  grid.addEventListener('click', async (e) => {
     const btn = e.target.closest('.support-quick__btn');
     if (!btn) return;
+    e.preventDefault();
     const q = btn.dataset.question;
     if (!q) return;
-    input.value = q;
+
+    const csrf = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrf);
+    fd.append('body', q);
+    sessionStorage.setItem('chat-scroll-bottom', '1');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(window.location.pathname, { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (res.ok || res.redirected) {
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      /* fallback */
+    }
+
+    const input = document.getElementById('chat-body');
+    if (input) input.value = q;
     form.requestSubmit();
   });
 })();
@@ -551,97 +565,6 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (e.key === 'ArrowLeft') show(idx - 1);
     if (e.key === 'ArrowRight') show(idx + 1);
   });
-})();
-
-/* --- Заявки: выбор объявления в модальном окне --- */
-(function initListingPicker() {
-  const picker = document.getElementById('listing-picker');
-  const form = document.getElementById('listing-picker-form');
-  const grid = document.getElementById('listing-picker-grid');
-  const search = document.getElementById('listing-picker-search');
-  const hiddenId = document.getElementById('listing-picker-id');
-  const submitBtn = document.getElementById('listing-picker-submit');
-  const selectedLabel = document.getElementById('listing-picker-selected');
-  const queryLabel = document.getElementById('listing-picker-query');
-  const countLabel = document.getElementById('listing-picker-count');
-  if (!picker || !form || !grid) return;
-
-  const cards = [...grid.querySelectorAll('.listing-pick-card')];
-  let selectedCard = null;
-
-  const updateCount = () => {
-    const visible = cards.filter((c) => !c.hidden).length;
-    if (countLabel) countLabel.textContent = visible ? `Показано: ${visible} из ${cards.length}` : 'Ничего не найдено';
-  };
-
-  const close = () => {
-    picker.hidden = true;
-    document.body.style.overflow = '';
-    selectedCard = null;
-    cards.forEach((c) => c.classList.remove('is-selected'));
-    if (hiddenId) hiddenId.value = '';
-    if (submitBtn) submitBtn.disabled = true;
-    if (selectedLabel) selectedLabel.textContent = 'Нажмите на объявление выше';
-    if (search) search.value = '';
-    cards.forEach((c) => { c.hidden = false; });
-    updateCount();
-  };
-
-  const open = (requestId, query) => {
-    form.action = '/catalog/looking/' + requestId + '/respond/';
-    if (queryLabel) queryLabel.textContent = 'Заявка: «' + query + '»';
-    picker.hidden = false;
-    document.body.style.overflow = 'hidden';
-    updateCount();
-    search?.focus();
-  };
-
-  const selectCard = (card) => {
-    selectedCard = card;
-    cards.forEach((c) => c.classList.remove('is-selected'));
-    card.classList.add('is-selected');
-    if (hiddenId) hiddenId.value = card.dataset.id || '';
-    if (submitBtn) submitBtn.disabled = false;
-    const title = card.querySelector('.listing-pick-card__title')?.textContent?.trim() || '';
-    if (selectedLabel) selectedLabel.textContent = 'Выбрано: ' + title;
-  };
-
-  document.querySelectorAll('.looking-offer-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      open(btn.dataset.requestId, btn.dataset.query || '');
-    });
-  });
-
-  picker.querySelectorAll('[data-picker-close]').forEach((el) => {
-    el.addEventListener('click', close);
-  });
-
-  cards.forEach((card) => {
-    card.addEventListener('click', () => selectCard(card));
-  });
-
-  search?.addEventListener('input', () => {
-    const q = (search.value || '').trim().toLowerCase();
-    cards.forEach((card) => {
-      const title = card.dataset.title || '';
-      card.hidden = q ? !title.includes(q) : false;
-    });
-    updateCount();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (picker.hidden) return;
-    if (e.key === 'Escape') close();
-  });
-
-  form.addEventListener('submit', (e) => {
-    if (!hiddenId?.value) {
-      e.preventDefault();
-      if (selectedLabel) selectedLabel.textContent = 'Сначала выберите объявление';
-    }
-  });
-
-  updateCount();
 })();
 
 /* --- Корзина: автосохранение количества --- */

@@ -198,13 +198,17 @@ def respond_to_search(request, pk):
     sr.response_seen = False
     sr.save(update_fields=['matched_listing', 'matched_seller', 'status', 'response_seen'])
     if sr.user:
-        notify(
-            sr.user,
-            'search_offer',
-            f'Отклик на заявку «{sr.query}»',
-            f'Продавец {request.user.first_name or request.user.username} предложил: {listing.title}',
-            '/accounts/my-requests/#offers',
-        )
+        seller_name = request.user.first_name or request.user.username
+        try:
+            notify(
+                sr.user,
+                'search_offer',
+                f'Отклик: {sr.query}',
+                f'Продавец {seller_name} предложил: {listing.title}',
+                '/accounts/my-requests/#offers',
+            )
+        except Exception:
+            pass
     messages.success(request, f'Вы предложили «{listing.title}» на заявку «{sr.query}»')
     return redirect(reverse('catalog:looking') + '#board')
 
