@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=31">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=32">
 </head>
 <body>
 <header class="header">
@@ -19,20 +19,31 @@
             <button type="submit" aria-label="Искать">🔍</button>
         </form>
         <nav class="nav" id="main-nav">
-            <a href="{% url 'catalog:index' %}">Каталог</a>
-            <a href="{% url 'catalog:looking' %}">Заявки</a>
-            {% if user.is_authenticated %}
-                <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent">+ Объявление</a>
-                <a href="{% url 'accounts:wallet' %}" class="nav__wallet-chip" title="Кошелёк">
-                    <span class="nav__wallet-icon">💳</span>
-                    <span class="nav__wallet-sum">{{ user.wallet_balance|floatformat:0 }}₽</span>
-                </a>
-                <a href="{% url 'cart' %}" class="nav__icon-link" title="Корзина">🛒{% if cart_count %}<span class="nav-mini">{{ cart_count }}</span>{% endif %}</a>
-                <a href="{% url 'chat:index' %}" class="nav__icon-link" title="Сообщения">💬{% if chat_unread_count %}<span class="nav-dot" aria-label="Новые сообщения"></span>{% endif %}</a>
+            <div class="nav__section nav__section--links">
+                <a href="{% url 'catalog:index' %}">Каталог</a>
+                <a href="{% url 'catalog:looking' %}">Заявки</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'orders:list' %}">Заказы</a>
+                    <a href="{% url 'chat:support' %}">Поддержка</a>
+                    {% if user.is_staff %}
+                        <a href="{% url 'panel:dashboard' %}">Панель</a>
+                    {% endif %}
+                {% endif %}
+            </div>
 
+            {% if user.is_authenticated %}
+            <div class="nav__section nav__section--icons">
+                <a href="{% url 'cart' %}" class="nav__icon-btn" title="Корзина" aria-label="Корзина">
+                    <span class="nav__icon-btn__glyph">🛒</span>
+                    {% if cart_count %}<span class="nav-mini">{{ cart_count }}</span>{% endif %}
+                </a>
+                <a href="{% url 'chat:index' %}" class="nav__icon-btn" title="Сообщения" aria-label="Сообщения">
+                    <span class="nav__icon-btn__glyph">💬</span>
+                    {% if chat_unread_count %}<span class="nav-dot" aria-label="Новые сообщения"></span>{% endif %}
+                </a>
                 <div class="nav-notify" id="nav-notify">
-                    <button type="button" class="nav-notify__bell" id="notify-bell" aria-label="Уведомления" aria-expanded="false" aria-controls="notify-dropdown">
-                        🔔
+                    <button type="button" class="nav__icon-btn nav-notify__bell" id="notify-bell" aria-label="Уведомления" aria-expanded="false" aria-controls="notify-dropdown">
+                        <span class="nav__icon-btn__glyph">🔔</span>
                         {% if notification_count %}<span class="nav-dot" id="notify-badge" aria-label="Новые уведомления"></span>{% endif %}
                     </button>
                     <div class="nav-notify__dropdown" id="notify-dropdown" hidden role="menu">
@@ -53,20 +64,25 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {% if user.is_staff %}
-                    <a href="{% url 'panel:dashboard' %}">Панель</a>
-                {% endif %}
-                <a href="{% url 'orders:list' %}">Заказы</a>
-                <a href="{% url 'chat:support' %}">Поддержка</a>
-                <a href="{% url 'accounts:profile' %}" class="nav__profile" title="Профиль">
+            <div class="nav__section nav__section--user">
+                <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent nav__cta">+ Объявление</a>
+                <a href="{% url 'accounts:wallet' %}" class="nav__wallet-chip" title="Кошелёк">
+                    <span class="nav__wallet-icon">💳</span>
+                    <span class="nav__wallet-sum">{{ user.wallet_balance|floatformat:0 }} ₽</span>
+                </a>
+                <a href="{% url 'accounts:profile' %}" class="nav__profile-pill" title="Профиль">
                     {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" class="nav__profile-img">{% endif %}
                     <span>{{ user.first_name|default:user.username }}</span>
                 </a>
-                <a href="{% url 'accounts:logout' %}" data-confirm="Выйти из аккаунта?">Выход</a>
+                <a href="{% url 'accounts:logout' %}" class="nav__logout" data-confirm="Выйти из аккаунта?" title="Выход">Выход</a>
+            </div>
             {% else %}
+            <div class="nav__section nav__section--auth">
                 <a href="{% url 'accounts:login' %}">Вход</a>
                 <a href="{% url 'accounts:register' %}" class="btn btn--sm">Регистрация</a>
+            </div>
             {% endif %}
         </nav>
         <button class="burger" id="burger" aria-label="Меню">☰</button>
