@@ -1,3 +1,4 @@
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -151,3 +152,17 @@ class Notification(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Уведомление'
         verbose_name_plural = 'Уведомления'
+
+
+class StoredFile(models.Model):
+    """Файл в базе данных (фото, видео, документы)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    original_name = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=100, default='application/octet-stream')
+    size = models.PositiveIntegerField(default=0)
+    data = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Файл в БД'
+        verbose_name_plural = 'Файлы в БД'

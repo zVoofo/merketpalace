@@ -114,20 +114,19 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': 'accounts.storage_db.DatabaseStorage',
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/files/'
 MEDIA_ROOT = BASE_DIR / 'media'
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800  # 50 MB
+MAX_DB_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
-# --- Хранение файлов (фото, видео, чат) ---
-# По умолчанию: локальная папка media/ (на Render работает, пока сервер не «уснул»)
-# Для постоянного хранения: S3-совместимое облако (Яндекс, Selectel и т.д.)
+# --- Опционально: S3 (Яндекс и т.д.) — только если заданы переменные ---
 _S3_BUCKET = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 if _S3_BUCKET:
     INSTALLED_APPS += ['storages']

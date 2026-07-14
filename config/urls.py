@@ -3,10 +3,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from catalog.views import home
+from accounts.views import serve_stored_file
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
+    path('files/<uuid:file_id>/', serve_stored_file, name='stored_file'),
     path('accounts/', include('accounts.urls')),
     path('catalog/', include('catalog.urls')),
     path('listing/', include('listings.urls')),
@@ -20,7 +22,7 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
 
-# Медиа (фото чата, аватары, объявления) — и на продакшене
+# Медиа с диска (если когда-то использовался FileSystemStorage)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = 'MarketPlace — Админ'

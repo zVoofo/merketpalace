@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from .forms import RegisterForm, LoginForm, ProfileForm, OrganizationForm, VerifyCodeForm
 from .verification import send_email_verification, verify_email_code, send_phone_verification, verify_phone_code
@@ -292,3 +292,15 @@ def notifications_read(request):
     from .models import Notification
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return JsonResponse({'ok': True})
+
+
+def serve_stored_file(request, file_id):
+    from .models import StoredFile
+    obj = get_object_or_404(StoredFile, pk=file_id)
+    response = HttpResponse(bytes(obj.data), content_type=obj.content_type)
+    response['Content-Length'] = obj.size
+    if obj.content_type.startswith('image/') or obj.content_type.startswith('video/'):
+        response['Content-Disposition'] = 'inline'
+    else:
+        response['Content-Disposition'] = f'inline; filename="{obj.original_name}"'
+    return response
