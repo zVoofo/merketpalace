@@ -201,6 +201,13 @@ def catalog_index(request):
 
 @require_POST
 def search_request_view(request):
+    if not request.user.is_authenticated:
+        query = request.POST.get('query', '').strip()
+        messages.info(request, 'Войдите или зарегистрируйтесь, чтобы оставить заявку «Ищу»')
+        login_url = reverse('accounts:login')
+        next_path = f'/catalog/?q={query}' if query else '/catalog/'
+        return redirect(f'{login_url}?next={next_path}')
+
     query = request.POST.get('query', '').strip()
     description = request.POST.get('description', '').strip()
     valid, error = is_valid_search_query(query)
@@ -213,15 +220,13 @@ def search_request_view(request):
             messages.error(request, f'Описание: {desc_error}')
             return redirect(f'/catalog/?q={query}')
     SearchRequest.objects.create(
-        user=request.user if request.user.is_authenticated else None,
+        user=request.user,
         query=query,
         description=description,
         contact=request.POST.get('contact', ''),
     )
     messages.success(request, 'Заявка на поиск отправлена!')
-    if request.user.is_authenticated:
-        return redirect(reverse('accounts:my_requests') + '#my-searches')
-    return redirect('catalog:looking')
+    return redirect(reverse('accounts:my_requests') + '#my-searches')
 
 
 def _listing_thumb_url(listing) -> str:

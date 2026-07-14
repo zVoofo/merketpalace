@@ -156,12 +156,22 @@
             <div class="zero-result">
                 <h2>Товар не найден</h2>
                 <p>Попробуйте изменить фильтры или оставьте заявку продавцам</p>
+                {% if user.is_authenticated %}
                 <form method="POST" action="{% url 'catalog:search_request' %}" class="zero-result__form" data-confirm="Создать заявку «Ищу»?">
                     {% csrf_token %}
                     <input type="hidden" name="query" value="{{ search_query }}">
                     <div class="form__group"><textarea name="description" placeholder="Опишите что ищете..." rows="3"></textarea></div>
                     <button type="submit" class="btn">Оставить заявку</button>
                 </form>
+                {% else %}
+                <div class="zero-result__auth">
+                    <p>Оставлять заявки «Ищу» могут только зарегистрированные пользователи.</p>
+                    <div class="zero-result__auth-actions">
+                        <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn">Войти</a>
+                        <a href="{% url 'accounts:register' %}?next={{ request.get_full_path|urlencode }}" class="btn btn--outline">Регистрация</a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             {% if external_offers %}
