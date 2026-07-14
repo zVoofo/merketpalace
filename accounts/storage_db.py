@@ -10,8 +10,15 @@ class DatabaseStorage(Storage):
 
     def _open(self, name, mode='rb'):
         from accounts.models import StoredFile
+        try:
+            uuid.UUID(str(name))
+        except (ValueError, TypeError, AttributeError):
+            raise FileNotFoundError(name)
         obj = StoredFile.objects.get(pk=name)
         return ContentFile(obj.data, name=obj.original_name)
+
+    def get_available_name(self, name, max_length=None):
+        return str(uuid.uuid4())
 
     def _save(self, name, content, max_length=None):
         from accounts.models import StoredFile
@@ -21,7 +28,10 @@ class DatabaseStorage(Storage):
             raise ValueError(f'Файл больше {max_size // (1024 * 1024)} МБ')
         original = getattr(content, 'name', name) or 'file'
         ct = getattr(content, 'content_type', None) or mimetypes.guess_type(original)[0] or 'application/octet-stream'
-        file_id = uuid.uuid4()
+        try:
+            file_id = uuid.UUID(str(name))
+        except (ValueError, TypeError, AttributeError):
+            file_id = uuid.uuid4()
         StoredFile.objects.create(
             id=file_id,
             original_name=original[:255],
@@ -33,10 +43,18 @@ class DatabaseStorage(Storage):
 
     def delete(self, name):
         from accounts.models import StoredFile
+        try:
+            uuid.UUID(str(name))
+        except (ValueError, TypeError, AttributeError):
+            return
         StoredFile.objects.filter(pk=name).delete()
 
     def exists(self, name):
         from accounts.models import StoredFile
+        try:
+            uuid.UUID(str(name))
+        except (ValueError, TypeError, AttributeError):
+            return False
         return StoredFile.objects.filter(pk=name).exists()
 
     def url(self, name):
@@ -46,5 +64,9 @@ class DatabaseStorage(Storage):
 
     def size(self, name):
         from accounts.models import StoredFile
+        try:
+            uuid.UUID(str(name))
+        except (ValueError, TypeError, AttributeError):
+            return 0
         obj = StoredFile.objects.filter(pk=name).first()
         return obj.size if obj else 0

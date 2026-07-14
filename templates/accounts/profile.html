@@ -1,134 +1,121 @@
-{% extends 'base.html' %}
-{% load static listing_extras %}
-
-{% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Профиль</h1>
-
-    {% if looking_responses %}
-    <div id="looking-responses" class="looking-widget">
-        <h2 class="looking-widget__title">🔔 Отклики на ваши заявки «Ищу»</h2>
-        {% for sr in looking_responses %}
-            <div class="looking-widget__item">
-                <p class="looking-widget__query">Вы искали: «{{ sr.query }}»</p>
-                <p class="looking-widget__seller"><strong>{{ sr.matched_seller.first_name|default:sr.matched_seller.username }}</strong> предложил:</p>
-                <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
-                    <img src="{% listing_image_url sr.matched_listing %}" alt="" width="72" height="72" onerror="this.src='{% static 'img/no-photo.svg' %}'">
-                    <span>
-                        <strong>{{ sr.matched_listing.title }}</strong>
-                        <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
-                    </span>
-                </a>
-                <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
-            </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if notifications %}
-    <div class="notifications-block">
-        <h2 class="looking-widget__title">Уведомления</h2>
-        {% for n in notifications %}
-            <div class="notifications-block__item{% if not n.is_read %} notifications-block__item--new{% endif %}">
-                <strong>{{ n.title }}</strong>
-                {% if n.body %}<p>{{ n.body }}</p>{% endif %}
-                {% if n.link %}<a href="{{ n.link }}">Открыть →</a>{% endif %}
-            </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="form form--wide">
-        <div class="profile-card">
-            {% if user.avatar %}
-                <img src="{{ user.avatar.url }}" alt="Аватар" class="profile-card__avatar">
-            {% else %}
-                <div class="profile-card__avatar profile-card__avatar--empty">👤</div>
-            {% endif %}
-            <div>
-                <strong>Режим:</strong> {% if user.active_role == 'seller' %}Продавец{% else %}Покупатель{% endif %}
-                {% if user.email_verified %}<span class="verified"> ✓ Email</span>{% endif %}
-                {% if user.phone_verified %}<span class="verified"> ✓ Телефон</span>{% endif %}
-                <form method="POST" style="margin-top:8px">
-                    {% csrf_token %}
-                    <input type="hidden" name="switch_role" value="1">
-                    <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">
-                    <button type="submit" class="btn btn--sm btn--outline">Переключить режим</button>
-                </form>
-            </div>
-        </div>
-
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <h3 style="margin-bottom:12px">Личные данные</h3>
-            {% for field in form %}
-                <div class="form__group">
-                    <label>{{ field.label }}</label>
-                    {% if field.name == 'avatar' %}
-                        <label class="avatar-upload">
-                            <input type="file" name="avatar" accept="image/*" hidden>
-                            <span class="avatar-upload__btn">📷 Выбрать фото</span>
-                            <span class="avatar-upload__name" id="avatar-filename">Файл не выбран</span>
-                        </label>
-                    {% else %}
-                        {{ field }}
-                    {% endif %}
-                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
-                </div>
-            {% endfor %}
-
-            <h3 style="margin:24px 0 12px">Организация (B2B) <span class="form__optional">— необязательно</span></h3>
-            {% for field in org_form %}
-                <div class="form__group">
-                    <label>{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
-                </div>
-            {% endfor %}
-            <button type="submit" class="btn">Сохранить профиль</button>
-        </form>
-
-        <div class="profile-verify">
-            <h3 style="margin-bottom:16px">Подтверждение контактов</h3>
-            <div class="profile-verify__box">
-                <strong>Email</strong>
-                {% if user.email_verified %}
-                    <span class="verified"> — подтверждён</span>
-                {% else %}
-                    <form method="POST" class="profile-verify__form">
-                        {% csrf_token %}
-                        <input type="hidden" name="email" value="{{ user.email }}">
-                        <button type="submit" name="send_email_code" class="btn btn--sm btn--outline">Отправить код</button>
-                    </form>
-                    <form method="POST" class="profile-verify__form">
-                        {% csrf_token %}
-                        <input type="hidden" name="email" value="{{ user.email }}">
-                        <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
-                        <button type="submit" name="verify_email" class="btn btn--sm">Подтвердить</button>
-                    </form>
-                {% endif %}
-            </div>
-            <div class="profile-verify__box">
-                <strong>Телефон</strong>
-                {% if user.phone_verified %}
-                    <span class="verified"> — подтверждён ({{ user.phone }})</span>
-                {% else %}
-                    <form method="POST" class="profile-verify__form">
-                        {% csrf_token %}
-                        <input type="hidden" name="phone" value="{{ user.phone }}">
-                        <button type="submit" name="send_phone_code" class="btn btn--sm btn--outline">Отправить SMS-код</button>
-                    </form>
-                    <form method="POST" class="profile-verify__form">
-                        {% csrf_token %}
-                        <input type="hidden" name="phone" value="{{ user.phone }}">
-                        <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
-                        <button type="submit" name="verify_phone" class="btn btn--sm">Подтвердить</button>
-                    </form>
-                {% endif %}
-            </div>
-        </div>
-
-        <p style="margin-top:24px"><a href="{% url 'accounts:wallet' %}" class="btn btn--outline">Кошелёк: {{ wallet.balance|floatformat:0 }} ₽</a></p>
-    </div>
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Профиль</h1>
+
+    {% if looking_responses %}
+    <div id="looking-responses" class="looking-widget">
+        <h2 class="looking-widget__title">🔔 Отклики на ваши заявки «Ищу»</h2>
+        {% for sr in looking_responses %}
+            <div class="looking-widget__item">
+                <p class="looking-widget__query">Вы искали: «{{ sr.query }}»</p>
+                <p class="looking-widget__seller"><strong>{{ sr.matched_seller.first_name|default:sr.matched_seller.username }}</strong> предложил:</p>
+                <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
+                    <img src="{% listing_image_url sr.matched_listing %}" alt="" width="72" height="72" onerror="this.src='{% static 'img/no-photo.svg' %}'">
+                    <span>
+                        <strong>{{ sr.matched_listing.title }}</strong>
+                        <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
+                    </span>
+                </a>
+                <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form form--wide">
+        <div class="profile-card">
+            {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="Аватар" class="profile-card__avatar">
+            {% else %}
+                <div class="profile-card__avatar profile-card__avatar--empty">👤</div>
+            {% endif %}
+            <div>
+                <strong>Режим:</strong> {% if user.active_role == 'seller' %}Продавец{% else %}Покупатель{% endif %}
+                {% if user.email_verified %}<span class="verified"> ✓ Email</span>{% endif %}
+                {% if user.phone_verified %}<span class="verified"> ✓ Телефон</span>{% endif %}
+                <form method="POST" style="margin-top:8px">
+                    {% csrf_token %}
+                    <input type="hidden" name="switch_role" value="1">
+                    <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">
+                    <button type="submit" class="btn btn--sm btn--outline">Переключить режим</button>
+                </form>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <h3 style="margin-bottom:12px">Личные данные</h3>
+            {% for field in form %}
+                <div class="form__group">
+                    <label>{{ field.label }}</label>
+                    {% if field.name == 'avatar' %}
+                        <label class="avatar-upload">
+                            <input type="file" name="avatar" accept="image/*" hidden>
+                            <span class="avatar-upload__btn">📷 Выбрать фото</span>
+                            <span class="avatar-upload__name" id="avatar-filename">Файл не выбран</span>
+                        </label>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
+                </div>
+            {% endfor %}
+
+            <h3 style="margin:24px 0 12px">Организация (B2B) <span class="form__optional">— необязательно</span></h3>
+            {% for field in org_form %}
+                <div class="form__group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Сохранить профиль</button>
+        </form>
+
+        <div class="profile-verify">
+            <h3 style="margin-bottom:16px">Подтверждение контактов</h3>
+            <div class="profile-verify__box">
+                <strong>Email</strong>
+                {% if user.email_verified %}
+                    <span class="verified"> — подтверждён</span>
+                {% else %}
+                    <form method="POST" class="profile-verify__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ user.email }}">
+                        <button type="submit" name="send_email_code" class="btn btn--sm btn--outline">Отправить код</button>
+                    </form>
+                    <form method="POST" class="profile-verify__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ user.email }}">
+                        <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
+                        <button type="submit" name="verify_email" class="btn btn--sm">Подтвердить</button>
+                    </form>
+                {% endif %}
+            </div>
+            <div class="profile-verify__box">
+                <strong>Телефон</strong>
+                {% if user.phone_verified %}
+                    <span class="verified"> — подтверждён ({{ user.phone }})</span>
+                {% else %}
+                    <form method="POST" class="profile-verify__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="phone" value="{{ user.phone }}">
+                        <button type="submit" name="send_phone_code" class="btn btn--sm btn--outline">Отправить SMS-код</button>
+                    </form>
+                    <form method="POST" class="profile-verify__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="phone" value="{{ user.phone }}">
+                        <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
+                        <button type="submit" name="verify_phone" class="btn btn--sm">Подтвердить</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <p style="margin-top:24px"><a href="{% url 'accounts:wallet' %}" class="btn btn--outline">Кошелёк: {{ wallet.balance|floatformat:0 }} ₽</a></p>
+    </div>
+</div>
+{% endblock %}

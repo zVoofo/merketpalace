@@ -198,15 +198,10 @@ def profile_view(request):
             status=SearchRequest.Status.FOUND,
         ).select_related('matched_listing', 'matched_seller').order_by('-created_at')[:10]
 
-    from .models import Notification
-    notifications = Notification.objects.filter(user=request.user)[:20]
-    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-
     return render(request, 'accounts/profile.html', {
         'title': 'Профиль', 'form': form, 'org_form': org_form,
         'wallet': wallet, 'verify_form': verify_form,
         'looking_responses': looking_responses,
-        'notifications': notifications,
     })
 
 
