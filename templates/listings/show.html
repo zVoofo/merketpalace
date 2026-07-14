@@ -50,16 +50,19 @@
             {% if listing.sku %}<p class="product__meta">Артикул: <strong>{{ listing.sku }}</strong></p>{% endif %}
             {% if listing.has_warranty %}<span class="warranty-badge">🛡 Гарантия</span>{% endif %}
             <div class="product__actions">
-                {% if listing.in_stock and user != listing.user %}
+            {% if user.is_authenticated and user == listing.user %}
+                <div class="product__own-notice" role="status">
+                    <strong>Объявление ваше</strong>
+                    <span>Купить у себя нельзя — управляйте им в <a href="{% url 'seller:listings' %}">Мои объявления</a></span>
+                </div>
+            {% elif listing.in_stock %}
                 <form method="POST" action="{% url 'cart_add' %}">
                     {% csrf_token %}
                     <input type="hidden" name="listing_id" value="{{ listing.id }}">
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <button type="submit" class="btn">В корзину</button>
                 </form>
-                {% elif listing.in_stock and user == listing.user %}
-                    <p class="section-hint" style="margin:0">Это ваше объявление — заказать у себя нельзя</p>
-                {% endif %}
+            {% endif %}
                 {% if user.is_authenticated and user != listing.user %}
                     <a href="{% url 'chat:start' listing.id %}" class="btn btn--outline">Написать продавцу</a>
                 {% endif %}

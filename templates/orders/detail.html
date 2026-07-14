@@ -3,13 +3,23 @@
 {% block content %}
 <div class="container">
     <h1>Заказ {{ order.order_number }}</h1>
-    <div style="background:var(--card);padding:24px;border-radius:var(--radius);margin-top:20px;box-shadow:var(--shadow)">
+
+    {% if order.buyer == user %}
+        <p class="order-role-badge order-role-badge--buyer">Вы покупатель в этом заказе</p>
+    {% elif order.seller == user %}
+        <p class="order-role-badge order-role-badge--seller">Вам заказали товар</p>
+    {% endif %}
+
+    <div class="order-detail-card">
         <p><strong>Статус:</strong> {{ order.get_status_display }}</p>
+        <p><strong>Покупатель:</strong> {{ order.buyer.first_name|default:order.buyer.username }}</p>
+        <p><strong>Продавец:</strong> {{ order.seller.first_name|default:order.seller.username }}</p>
         <p><strong>Оплата:</strong> {{ order.get_payment_method_display|default:"—" }}</p>
-        <p><strong>Адрес:</strong> {{ order.delivery_address }}</p>
+        <p><strong>Адрес:</strong> {{ order.delivery_address|default:"—" }}</p>
         <p><strong>Итого:</strong> {{ order.total|floatformat:0 }} ₽</p>
         <ul>{% for item in order.items.all %}<li>{{ item.title }} × {{ item.quantity }} — {{ item.total|floatformat:0 }} ₽</li>{% endfor %}</ul>
-        {% if order.escrow_held %}<p style="color:var(--accent)">💰 Безопасная сделка — средства заморожены</p>{% endif %}
+        {% if order.escrow_held %}<p class="order-escrow">💰 Безопасная сделка — средства заморожены</p>{% endif %}
     </div>
+    <p style="margin-top:16px"><a href="{% url 'orders:list' %}{% if order.seller == user %}?tab=sales{% endif %}">← К заказам</a></p>
 </div>
 {% endblock %}

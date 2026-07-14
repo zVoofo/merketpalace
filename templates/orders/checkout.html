@@ -11,10 +11,13 @@
             {% for field in form %}
                 <div class="form__group"><label>{{ field.label }}</label>{{ field }}</div>
             {% endfor %}
-            <p style="margin:12px 0;padding:12px;background:var(--bg);border-radius:8px">
-                Баланс кошелька: <strong>{{ wallet.balance|floatformat:0 }} ₽</strong>
-                · <a href="{% url 'accounts:wallet' %}">Пополнить</a>
-            </p>
+        <div class="checkout-wallet">
+            <div class="checkout-wallet__balance">
+                <span>Баланс кошелька</span>
+                <strong>{{ wallet.balance|floatformat:0 }} ₽</strong>
+            </div>
+            <a href="{% url 'accounts:wallet' %}" class="btn btn--sm btn--outline">Пополнить</a>
+        </div>
             <button type="submit" class="btn">Подтвердить и оплатить</button>
         </form>
     </div>

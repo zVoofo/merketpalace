@@ -191,8 +191,21 @@ def checkout_view(request):
 
 @login_required
 def order_list(request):
-    orders = Order.objects.filter(buyer=request.user)
-    return render(request, 'orders/list.html', {'title': 'Мои заказы', 'orders': orders})
+    tab = request.GET.get('tab', 'bought')
+    bought_orders = Order.objects.filter(buyer=request.user).select_related('seller').order_by('-created_at')
+    sales_orders = Order.objects.filter(seller=request.user).select_related('buyer').order_by('-created_at')
+    if tab == 'sales':
+        orders = sales_orders
+    else:
+        orders = bought_orders
+        tab = 'bought'
+    return render(request, 'orders/list.html', {
+        'title': 'Заказы',
+        'orders': orders,
+        'tab': tab,
+        'bought_count': bought_orders.count(),
+        'sales_count': sales_orders.count(),
+    })
 
 
 @login_required

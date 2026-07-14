@@ -289,6 +289,35 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   });
 })();
 
+/* --- Профиль: режим редактирования --- */
+(function initProfileEdit() {
+  const view = document.getElementById('profile-view');
+  const edit = document.getElementById('profile-edit');
+  const openBtn = document.getElementById('profile-edit-open');
+  const closeBtn = document.getElementById('profile-edit-close');
+  if (!view || !edit) return;
+
+  const showEdit = () => {
+    view.hidden = true;
+    edit.hidden = false;
+    edit.classList.add('profile-edit--open');
+    edit.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const showView = () => {
+    edit.hidden = true;
+    edit.classList.remove('profile-edit--open');
+    view.hidden = false;
+  };
+
+  openBtn?.addEventListener('click', showEdit);
+  closeBtn?.addEventListener('click', showView);
+
+  if (edit.classList.contains('profile-edit--open')) {
+    showEdit();
+  }
+})();
+
 /* --- Заглушка для битых картинок (только вне каталога) --- */
 document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) => {
   img.addEventListener('error', () => {

@@ -1,45 +1,87 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Кошелёк</h1>
-    <div class="stats" style="margin-bottom:24px">
-        <div class="stat">
-            <div class="stat__num">{{ wallet.balance|floatformat:0 }} ₽</div>
-            <div class="stat__label">Текущий баланс</div>
+<div class="container wallet-page">
+    <div class="wallet-page__head">
+        <div>
+            <h1 class="wallet-page__title">Кошелёк</h1>
+            <p class="wallet-page__lead">Оплачивайте заказы в один клик — без ввода карты каждый раз</p>
         </div>
+        <a href="{% url 'accounts:profile' %}" class="btn btn--outline btn--sm">← Профиль</a>
     </div>
 
-    <div class="form" style="margin-bottom:32px">
-        <h2 style="margin-bottom:16px;font-size:1.1rem">Пополнить кошелёк</h2>
-        <form method="POST">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="form__group">
-                    <label>{{ field.label }}</label>
-                    {{ field }}
-                </div>
-            {% endfor %}
-            <button type="submit" class="btn">Пополнить</button>
-        </form>
-        <p style="margin-top:12px;font-size:.85rem;color:var(--muted)">Демо-режим: пополнение мгновенное, без реального списания.</p>
+    <div class="wallet-hero">
+        <div class="wallet-hero__glow"></div>
+        <div class="wallet-hero__content">
+            <span class="wallet-hero__label">Ваш баланс</span>
+            <div class="wallet-hero__amount">{{ wallet.balance|floatformat:0 }} <span>₽</span></div>
+            <p class="wallet-hero__hint">Средства списываются только при оплате заказа с выбором «Кошелёк MarketPlace»</p>
+        </div>
+        <div class="wallet-hero__icon" aria-hidden="true">💳</div>
     </div>
 
-    <h2 style="margin-bottom:12px">История операций</h2>
-    <table class="table">
-        <thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Описание</th></tr></thead>
-        <tbody>
-        {% for tx in transactions %}
-            <tr>
-                <td>{{ tx.created_at|date:"d.m.Y H:i" }}</td>
-                <td>{{ tx.get_tx_type_display }}</td>
-                <td>{% if tx.tx_type == 'deposit' %}+{% else %}-{% endif %}{{ tx.amount|floatformat:0 }} ₽</td>
-                <td>{{ tx.description }}</td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="4">Операций пока нет</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="wallet-grid">
+        <section class="wallet-panel">
+            <h2 class="wallet-panel__title">Быстрое пополнение</h2>
+            <p class="wallet-panel__sub">Выберите сумму — зачисление мгновенное (демо-режим)</p>
+            <div class="wallet-quick">
+                {% for sum in quick_amounts %}
+                    <form method="POST" class="wallet-quick__form">
+                        {% csrf_token %}
+                        <input type="hidden" name="quick_amount" value="{{ sum }}">
+                        <button type="submit" class="wallet-quick__btn">+{{ sum|floatformat:0 }} ₽</button>
+                    </form>
+                {% endfor %}
+            </div>
+
+            <h3 class="wallet-panel__subtitle">Другая сумма</h3>
+            <form method="POST" class="wallet-topup-form">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form__group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn">Пополнить кошелёк</button>
+            </form>
+        </section>
+
+        <section class="wallet-panel wallet-panel--info">
+            <h2 class="wallet-panel__title">Как это работает</h2>
+            <ul class="wallet-steps">
+                <li><span>1</span> Пополните кошелёк удобной суммой</li>
+                <li><span>2</span> При оформлении заказа выберите оплату кошельком</li>
+                <li><span>3</span> Баланс обновится сразу после покупки</li>
+            </ul>
+            <a href="{% url 'orders:list' %}" class="btn btn--outline btn--sm">Мои заказы</a>
+        </section>
+    </div>
+
+    <section class="wallet-history">
+        <h2 class="wallet-panel__title">История операций</h2>
+        {% if transactions %}
+            <div class="wallet-tx-list">
+                {% for tx in transactions %}
+                    <article class="wallet-tx wallet-tx--{{ tx.tx_type }}">
+                        <div class="wallet-tx__icon">
+                            {% if tx.tx_type == 'deposit' %}↓{% elif tx.tx_type == 'payment' %}↑{% else %}↺{% endif %}
+                        </div>
+                        <div class="wallet-tx__body">
+                            <strong>{{ tx.get_tx_type_display }}</strong>
+                            <span>{{ tx.description|default:"Операция" }}</span>
+                            <time>{{ tx.created_at|date:"d.m.Y H:i" }}</time>
+                        </div>
+                        <div class="wallet-tx__sum">
+                            {% if tx.tx_type == 'deposit' %}+{% else %}-{% endif %}{{ tx.amount|floatformat:0 }} ₽
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="wallet-empty">Пока нет операций. Пополните кошелёк — и здесь появится история.</p>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

@@ -200,10 +200,15 @@ def profile_view(request):
                     messages.error(request, 'Неверный или просроченный код')
             return redirect('accounts:profile')
 
+        if 'save_profile' not in request.POST:
+            return redirect('accounts:profile')
+
+        edit_mode = True
         form = ProfileForm(request.POST, request.FILES, instance=request.user)
         org_form = OrganizationForm(request.POST, instance=org)
         profile_ok = form.is_valid()
         org_ok = org_form.is_valid()
+        edit_mode = True
         if profile_ok:
             form.save()
         if org_ok:
@@ -221,6 +226,7 @@ def profile_view(request):
     else:
         form = ProfileForm(instance=request.user)
         org_form = OrganizationForm(instance=org)
+        edit_mode = request.GET.get('edit') == '1'
 
     looking_incoming_count = 0
     if request.user.is_authenticated:
@@ -234,6 +240,7 @@ def profile_view(request):
         'title': 'Профиль', 'form': form, 'org_form': org_form,
         'wallet': wallet, 'verify_form': verify_form,
         'looking_incoming_count': looking_incoming_count,
+        'org': org, 'edit_mode': edit_mode,
     })
 
 
@@ -242,19 +249,33 @@ def wallet_view(request):
     wallet = get_wallet(request.user)
     transactions = wallet.transactions.all()[:30]
     form = TopUpForm()
+    quick_amounts = [500, 1000, 3000, 10000]
     if request.method == 'POST':
+        quick = request.POST.get('quick_amount')
+        if quick:
+            try:
+                from decimal import Decimal
+                amount = Decimal(quick)
+                if Decimal('100') <= amount <= Decimal('500000'):
+                    deposit(request.user, amount, 'Быстрое пополнение')
+                    messages.success(request, f'Кошелёк пополнен на {amount:,.0f} ₽'.replace(',', ' '))
+                    return redirect('accounts:wallet')
+            except Exception:
+                messages.error(request, 'Некорректная сумма')
+                return redirect('accounts:wallet')
         form = TopUpForm(request.POST)
         if form.is_valid():
             amount = form.cleaned_data['amount']
             method = form.cleaned_data['payment_type']
             deposit(request.user, amount, f'Пополнение через {method}')
-            messages.success(request, f'Кошелёк пополнен на {amount} ₽')
+            messages.success(request, f'Кошелёк пополнен на {amount:,.0f} ₽'.replace(',', ' '))
             return redirect('accounts:wallet')
     return render(request, 'accounts/wallet.html', {
         'title': 'Кошелёк',
         'wallet': wallet,
         'transactions': transactions,
         'form': form,
+        'quick_amounts': quick_amounts,
     })
 
 

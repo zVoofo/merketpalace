@@ -2,22 +2,60 @@
 
 {% block content %}
 <div class="container">
-    <h1>Мои заказы</h1>
-    <table class="table" style="margin-top:20px">
-        <thead><tr><th>Номер</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th></tr></thead>
-        <tbody>
-        {% for o in orders %}
-            <tr>
-                <td>{{ o.order_number }}</td>
-                <td>{{ o.total|floatformat:0 }} ₽</td>
-                <td>{{ o.get_status_display }}</td>
-                <td>{{ o.created_at|date:"d.m.Y H:i" }}</td>
-                <td><a href="{% url 'orders:detail' o.pk %}">Подробнее</a></td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="5">Заказов нет</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <h1>Заказы</h1>
+
+    <div class="orders-tabs">
+        <a href="{% url 'orders:list' %}?tab=bought" class="orders-tabs__btn{% if tab == 'bought' %} is-active{% endif %}">
+            Я купил{% if bought_count %} ({{ bought_count }}){% endif %}
+        </a>
+        <a href="{% url 'orders:list' %}?tab=sales" class="orders-tabs__btn{% if tab == 'sales' %} is-active{% endif %}">
+            Мне заказали{% if sales_count %} ({{ sales_count }}){% endif %}
+        </a>
+    </div>
+
+    <p class="section-hint">
+        {% if tab == 'bought' %}
+            Заказы, которые вы оформили как покупатель
+        {% else %}
+            Заказы от других покупателей на ваши товары
+        {% endif %}
+    </p>
+
+    <div class="listings-table-wrap" style="margin-top:16px">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Номер</th>
+                    {% if tab == 'sales' %}<th>Покупатель</th>{% else %}<th>Продавец</th>{% endif %}
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for o in orders %}
+                <tr>
+                    <td>{{ o.order_number }}</td>
+                    <td>
+                        {% if tab == 'sales' %}
+                            {{ o.buyer.first_name|default:o.buyer.username }}
+                        {% else %}
+                            {{ o.seller.first_name|default:o.seller.username }}
+                        {% endif %}
+                    </td>
+                    <td>{{ o.total|floatformat:0 }} ₽</td>
+                    <td><span class="status-badge status-badge--{{ o.status }}">{{ o.get_status_display }}</span></td>
+                    <td>{{ o.created_at|date:"d.m.Y H:i" }}</td>
+                    <td><a href="{% url 'orders:detail' o.pk %}">Подробнее</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6">
+                    {% if tab == 'sales' %}Пока никто не заказал ваши товары{% else %}Вы ещё ничего не покупали{% endif %}
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
