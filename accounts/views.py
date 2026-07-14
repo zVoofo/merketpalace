@@ -7,6 +7,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse, FileResponse, Http404
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from .forms import RegisterForm, LoginForm, ProfileForm, OrganizationForm, VerifyCodeForm
 from .verification import send_email_verification, verify_email_code, send_phone_verification, verify_phone_code
@@ -18,6 +19,7 @@ from .middleware import log_action
 from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
 from listings.services import get_seller_rating
+from catalog.views import looking_board_context
 from listings.views import looking_requests_context
 
 
@@ -43,7 +45,7 @@ def register_view(request):
             login(request, user)
             log_action(user, 'register', 'user', user.pk, request)
             messages.success(request, 'Регистрация успешна!')
-            return redirect('accounts:profile')
+            return redirect('accounts:cabinet')
     else:
         form = RegisterForm()
     return render(request, 'accounts/register.html', {'form': form, 'title': 'Регистрация'})
@@ -144,9 +146,46 @@ def public_profile_view(request, username):
 
 @login_required
 def profile_view(request):
+    """Старый URL — перенаправление в единый кабинет."""
+    suffix = '?tab=settings' if request.GET.get('edit') == '1' else ''
+    return redirect(reverse('accounts:cabinet') + suffix)
+
+
+def _cabinet_redirect(tab='overview', anchor=''):
+    url = reverse('accounts:cabinet')
+    if tab != 'overview':
+        url += f'?tab={tab}'
+    if anchor:
+        url += f'#{anchor}'
+    return url
+
+
+def _seller_stats(user):
+    listings = Listing.objects.filter(user=user)
+    orders_count = user.sales_received.count() if hasattr(user, 'sales_received') else 0
+    rating_avg, rating_count = get_seller_rating(user)
+    return {
+        'listings_count': listings.count(),
+        'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
+        'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
+        'orders_count': orders_count,
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
+    }
+
+
+@login_required
+def cabinet_view(request):
+    """Единый личный кабинет: профиль, заявки, доска."""
     org = getattr(request.user, 'organization', None)
     wallet = get_wallet(request.user)
     verify_form = VerifyCodeForm()
+    tab = request.GET.get('tab', 'overview')
+    if tab not in ('overview', 'requests', 'board', 'settings'):
+        tab = 'overview'
+    edit_mode = request.GET.get('edit') == '1' or tab == 'settings'
+    form = None
+    org_form = None
 
     if request.method == 'POST':
         if 'switch_role' in request.POST:
@@ -154,7 +193,7 @@ def profile_view(request):
             request.user.active_role = role
             request.user.save(update_fields=['active_role'])
             messages.success(request, f'Режим: {"Продавец" if role == "seller" else "Покупатель"}')
-            return redirect('accounts:profile')
+            return redirect(_cabinet_redirect(tab))
 
         if 'send_email_code' in request.POST:
             email = request.POST.get('email') or request.user.email
@@ -169,7 +208,7 @@ def profile_view(request):
                     messages.success(request, msg)
                 except Exception as e:
                     messages.error(request, f'Не удалось отправить email: {e}')
-            return redirect('accounts:profile')
+            return redirect(_cabinet_redirect('settings'))
 
         if 'verify_email' in request.POST:
             verify_form = VerifyCodeForm(request.POST)
@@ -179,7 +218,7 @@ def profile_view(request):
                     messages.success(request, 'Email подтверждён!')
                 else:
                     messages.error(request, 'Неверный или просроченный код')
-            return redirect('accounts:profile')
+            return redirect(_cabinet_redirect('settings'))
 
         if 'send_phone_code' in request.POST:
             phone = request.POST.get('phone') or request.user.phone
@@ -191,7 +230,7 @@ def profile_view(request):
                 if settings.DEBUG:
                     msg += f' (тест: {code})'
                 messages.success(request, msg)
-            return redirect('accounts:profile')
+            return redirect(_cabinet_redirect('settings'))
 
         if 'verify_phone' in request.POST:
             verify_form = VerifyCodeForm(request.POST)
@@ -201,64 +240,71 @@ def profile_view(request):
                     messages.success(request, 'Телефон подтверждён!')
                 else:
                     messages.error(request, 'Неверный или просроченный код')
-            return redirect('accounts:profile')
+            return redirect(_cabinet_redirect('settings'))
 
-        if 'save_profile' not in request.POST:
-            return redirect('accounts:profile')
+        if 'save_profile' in request.POST:
+            form = ProfileForm(request.POST, request.FILES, instance=request.user)
+            org_form = OrganizationForm(request.POST, instance=org)
+            profile_ok = form.is_valid()
+            org_ok = org_form.is_valid()
+            edit_mode = True
+            tab = 'settings'
+            if profile_ok:
+                form.save()
+            if org_ok:
+                org_data = org_form.cleaned_data
+                if org_data.get('name'):
+                    org_obj = org_form.save(commit=False)
+                    org_obj.user = request.user
+                    org_obj.save()
+            if profile_ok:
+                messages.success(request, 'Профиль обновлён')
+                return redirect(_cabinet_redirect('overview'))
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f'{field}: {err}')
+            # fall through — render settings with errors
+        else:
+            return redirect(_cabinet_redirect(tab))
 
-        edit_mode = True
-        form = ProfileForm(request.POST, request.FILES, instance=request.user)
-        org_form = OrganizationForm(request.POST, instance=org)
-        profile_ok = form.is_valid()
-        org_ok = org_form.is_valid()
-        edit_mode = True
-        if profile_ok:
-            form.save()
-        if org_ok:
-            org_data = org_form.cleaned_data
-            if org_data.get('name'):
-                org_obj = org_form.save(commit=False)
-                org_obj.user = request.user
-                org_obj.save()
-        if profile_ok:
-            messages.success(request, 'Профиль обновлён')
-            return redirect('accounts:profile')
-        for field, errors in form.errors.items():
-            for err in errors:
-                messages.error(request, f'{field}: {err}')
-    else:
+    if form is None:
         form = ProfileForm(instance=request.user)
         org_form = OrganizationForm(instance=org)
-        edit_mode = request.GET.get('edit') == '1'
 
-    looking_incoming_count = 0
-    if request.user.is_authenticated:
-        looking_incoming_count = SearchRequest.objects.filter(
-            user=request.user,
-            status=SearchRequest.Status.FOUND,
-            matched_listing__isnull=False,
-        ).count()
+    requests_ctx = looking_requests_context(request.user)
+    incoming_count = requests_ctx.get('incoming_count', 0)
 
-    rating_avg, rating_count = get_seller_rating(request.user)
+    hub_active = tab if tab in ('overview', 'requests', 'board') else 'overview'
+    if tab == 'board':
+        hub_active = 'requests'
 
-    return render(request, 'accounts/profile.html', {
-        'title': 'Профиль', 'form': form, 'org_form': org_form,
-        'wallet': wallet, 'verify_form': verify_form,
-        'looking_incoming_count': looking_incoming_count,
-        'org': org, 'edit_mode': edit_mode,
-        'rating_avg': rating_avg,
-        'rating_count': rating_count,
-    })
+    ctx = {
+        'title': 'Личный кабинет',
+        'tab': tab,
+        'hub_active': hub_active,
+        'requests_badge': incoming_count,
+        'form': form,
+        'org_form': org_form,
+        'wallet': wallet,
+        'verify_form': verify_form,
+        'org': org,
+        'edit_mode': edit_mode,
+        'incoming_count': incoming_count,
+        **requests_ctx,
+    }
+
+    if request.user.active_role == 'seller':
+        ctx.update(_seller_stats(request.user))
+
+    if tab == 'board':
+        ctx.update(looking_board_context(request))
+
+    return render(request, 'accounts/cabinet.html', ctx)
 
 
 @login_required
 def my_requests_view(request):
-    """Отклики и заявки «Ищу» для покупателя (без раздела /seller/)."""
-    return render(request, 'seller/requests.html', {
-        'title': 'Мои заявки',
-        'buyer_requests_page': True,
-        **looking_requests_context(request.user),
-    })
+    return redirect(reverse('accounts:cabinet') + '?tab=requests')
 
 
 @login_required

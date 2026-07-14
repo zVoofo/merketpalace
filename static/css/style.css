@@ -446,10 +446,48 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 /* --- Профиль / Ищу --- */
 .looking-offer-card{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
 .cabinet-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding-bottom:16px;border-bottom:1px solid var(--border-light)}
-.cabinet-nav a{padding:8px 14px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent}
-.cabinet-nav a:hover{color:var(--primary);background:var(--primary-light)}
-.cabinet-nav a.is-active{color:var(--primary);background:var(--primary-light);border-color:var(--border)}
-.cabinet-nav__badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:10px;background:var(--error);color:#fff;font-size:.72rem;line-height:1.4;text-align:center}
+.hub-nav,.cabinet-nav{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 16px;padding-bottom:14px;border-bottom:1px solid var(--border-light)}
+.hub-nav a,.cabinet-nav a{padding:9px 16px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;transition:background .15s,color .15s}
+.hub-nav a:hover,.cabinet-nav a:hover{color:var(--primary);background:var(--primary-light)}
+.hub-nav a.is-active,.cabinet-nav a.is-active{color:var(--primary);background:var(--primary-light);border-color:var(--border)}
+.hub-nav__badge,.cabinet-nav__badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:10px;background:var(--error);color:#fff;font-size:.72rem;line-height:1.4;text-align:center}
+
+.hub-subnav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.hub-subnav a{padding:7px 12px;border-radius:99px;font-size:.82rem;font-weight:600;color:var(--muted);text-decoration:none;background:var(--bg-soft);border:1px solid var(--border-light)}
+.hub-subnav a:hover{color:var(--primary);border-color:var(--primary)}
+.hub-subnav a.is-active{color:var(--primary);background:var(--primary-light);border-color:var(--primary)}
+.hub-subnav__count{font-size:.75rem;opacity:.85}
+
+.hub-page{margin-bottom:40px}
+.hub-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.hub-head__title{margin:0;font-size:1.35rem}
+.hub-head__meta{font-size:.85rem;color:var(--muted)}
+.hub-panel__lead{margin:0 0 16px;color:var(--muted);font-size:.92rem}
+.hub-panel{margin-top:8px}
+
+.hub-profile-card{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 20px;
+  background:var(--card);border-radius:var(--radius);border:1px solid var(--border-light);box-shadow:var(--shadow);margin-bottom:14px;
+}
+.hub-profile-card__avatar{width:64px;height:64px;border-radius:50%;object-fit:cover}
+.hub-profile-card__avatar--empty{display:flex;align-items:center;justify-content:center;background:var(--primary-light);font-size:1.5rem;font-weight:700;color:var(--primary)}
+.hub-profile-card__info{flex:1;min-width:180px}
+.hub-profile-card__info h2{margin:0 0 4px;font-size:1.1rem}
+.hub-profile-card__info p{margin:0;font-size:.88rem;color:var(--muted)}
+.hub-profile-card__role{margin-top:6px!important;font-size:.85rem!important;color:var(--text)!important}
+
+.hub-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-bottom:14px}
+.hub-stat{padding:14px 12px;text-align:center;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border-light)}
+.hub-stat--accent{border-color:#e8cfc5;background:var(--primary-light)}
+.hub-stat__num{display:block;font-size:1.25rem;font-weight:800;color:var(--primary)}
+.hub-stat__label{display:block;margin-top:4px;font-size:.72rem;color:var(--muted)}
+
+.hub-quick{display:flex;flex-wrap:wrap;gap:8px}
+.hub-quick__link{
+  padding:10px 14px;border-radius:var(--radius-sm);background:var(--card);
+  border:1px solid var(--border-light);font-size:.88rem;font-weight:600;color:var(--text);text-decoration:none;
+}
+.hub-quick__link:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
 .cabinet-section{margin-bottom:32px}
 .profile-looking-banner{margin-bottom:20px}
 .looking-widget__title{font-size:1.1rem;margin-bottom:14px;font-weight:700}

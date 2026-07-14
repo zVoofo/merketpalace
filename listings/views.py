@@ -172,29 +172,8 @@ def review_create(request, slug):
 
 @login_required
 def seller_dashboard(request):
-    listings = Listing.objects.filter(user=request.user)
-    orders_count = request.user.sales_received.count() if hasattr(request.user, 'sales_received') else 0
-    open_looking_count = SearchRequest.objects.filter(
-        status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS],
-    ).exclude(user=request.user).count()
-    incoming_count = SearchRequest.objects.filter(
-        user=request.user,
-        status=SearchRequest.Status.FOUND,
-        matched_listing__isnull=False,
-    ).count()
-    rating_avg, rating_count = get_seller_rating(request.user)
-    return render(request, 'seller/dashboard.html', {
-        'title': 'Кабинет продавца',
-        'listings_count': listings.count(),
-        'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
-        'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
-        'total_views': sum(l.views_count for l in listings),
-        'orders_count': orders_count,
-        'open_looking_count': open_looking_count,
-        'incoming_count': incoming_count,
-        'rating_avg': rating_avg,
-        'rating_count': rating_count,
-    })
+    from django.urls import reverse
+    return redirect(reverse('accounts:cabinet'))
 
 
 def looking_requests_context(user):
@@ -257,11 +236,8 @@ def seller_reviews(request):
 
 @login_required
 def seller_looking_requests(request):
-    """Личный кабинет: все свои заявки «Ищу» и отклики."""
-    return render(request, 'seller/requests.html', {
-        'title': 'Мои заявки',
-        **looking_requests_context(request.user),
-    })
+    from django.urls import reverse
+    return redirect(reverse('accounts:cabinet') + '?tab=requests')
 
 
 @login_required

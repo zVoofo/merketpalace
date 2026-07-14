@@ -1,0 +1,71 @@
+<section class="looking-board" id="board">
+    {% for sr in search_requests %}
+        <article class="looking-request" data-request-id="{{ sr.pk }}" data-query="{{ sr.query|escape }}">
+            <div class="looking-request__main">
+                <div class="looking-request__icon" aria-hidden="true">🔍</div>
+                <div class="looking-request__content">
+                    <div class="looking-request__top">
+                        <h2 class="looking-request__query">{{ sr.query }}</h2>
+                        <span class="status-badge status-badge--{{ sr.status }}">{{ sr.get_status_display }}</span>
+                    </div>
+                    {% if sr.description %}
+                        <blockquote class="looking-request__desc">{{ sr.description }}</blockquote>
+                    {% endif %}
+                    <p class="looking-request__meta">
+                        <time datetime="{{ sr.created_at|date:'c' }}">{{ sr.created_at|date:"d.m.Y H:i" }}</time>
+                        {% if sr.user %}
+                            <span class="looking-request__buyer">
+                                {% if sr.user.first_name %}{{ sr.user.first_name }}{% else %}{{ sr.user.username }}{% endif %}
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {% if user.is_authenticated %}
+                {% if user.active_role == 'seller' %}
+                    {% if seller_listings_count %}
+                        <div class="looking-request__actions">
+                            <button type="button" class="btn looking-request__open" data-offer-open>
+                                Предложить товар
+                                <span class="looking-request__open-hint">{{ seller_listings_count }} шт.</span>
+                            </button>
+                        </div>
+                        <div class="looking-picker" hidden>
+                            <div class="looking-picker__head">
+                                <div>
+                                    <p class="looking-picker__label">Выберите объявление</p>
+                                    <p class="looking-picker__query">Заявка: «{{ sr.query }}»</p>
+                                </div>
+                                <button type="button" class="looking-picker__close" data-offer-close aria-label="Закрыть">×</button>
+                            </div>
+                            <div class="looking-picker__search-wrap">
+                                <input type="search" class="looking-picker__search" placeholder="Поиск по вашим объявлениям..." autocomplete="off">
+                                <span class="looking-picker__count"></span>
+                            </div>
+                            <div class="looking-picker__list" role="listbox" aria-label="Ваши объявления"></div>
+                            <form method="POST" action="{% url 'catalog:respond' sr.pk %}" class="looking-picker__footer" data-confirm="Отправить выбранное объявление покупателю?">
+                                {% csrf_token %}
+                                <input type="hidden" name="listing_id" value="">
+                                <p class="looking-picker__selected">Нажмите на объявление в списке</p>
+                                <button type="submit" class="btn btn--accent" disabled>Отправить предложение</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <p class="looking-request__hint">Создайте <a href="{% url 'listings:create' %}">объявление</a>, чтобы откликнуться</p>
+                    {% endif %}
+                {% else %}
+                    <p class="looking-request__hint">Переключитесь в <a href="{% url 'accounts:cabinet' %}">режим продавца</a>, чтобы откликнуться</p>
+                {% endif %}
+            {% else %}
+                <p class="looking-request__hint"><a href="{% url 'accounts:login' %}">Войдите</a>, чтобы предложить товар</p>
+            {% endif %}
+        </article>
+    {% empty %}
+        <div class="looking-empty">
+            <p class="looking-empty__icon" aria-hidden="true">📋</p>
+            <p class="looking-empty__title">Новых заявок пока нет</p>
+            <p class="looking-empty__text">Загляните позже — здесь появятся запросы покупателей</p>
+        </div>
+    {% endfor %}
+</section>

@@ -1,9 +1,1 @@
-<nav class="cabinet-nav">
-    <a href="{% url 'seller:dashboard' %}"{% if active == 'dashboard' %} class="is-active"{% endif %}>Кабинет</a>
-    <a href="{% url 'seller:listings' %}"{% if active == 'listings' %} class="is-active"{% endif %}>Мои объявления</a>
-    <a href="{% url 'seller:requests' %}"{% if active == 'requests' %} class="is-active"{% endif %}>
-        Мои заявки{% if requests_badge %} <span class="cabinet-nav__badge">{{ requests_badge }}</span>{% endif %}
-    </a>
-    <a href="{% url 'seller:reviews' %}"{% if active == 'reviews' %} class="is-active"{% endif %}>Отзывы</a>
-    <a href="{% url 'catalog:looking' %}"{% if active == 'looking' %} class="is-active"{% endif %}>Заявки покупателей</a>
-</nav>
+{% include 'includes/hub_nav.html' %}

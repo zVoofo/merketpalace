@@ -1,0 +1,12 @@
+<nav class="hub-nav" aria-label="Личный кабинет">
+    <a href="{% url 'accounts:cabinet' %}"{% if hub_active == 'overview' %} class="is-active"{% endif %}>Обзор</a>
+    {% if user.active_role == 'seller' %}
+        <a href="{% url 'seller:listings' %}"{% if hub_active == 'listings' %} class="is-active"{% endif %}>Объявления</a>
+    {% endif %}
+    <a href="{% url 'accounts:cabinet' %}?tab=requests"{% if hub_active == 'requests' %} class="is-active"{% endif %}>
+        Заявки{% if requests_badge %} <span class="hub-nav__badge">{{ requests_badge }}</span>{% endif %}
+    </a>
+    {% if user.active_role == 'seller' %}
+        <a href="{% url 'seller:reviews' %}"{% if hub_active == 'reviews' %} class="is-active"{% endif %}>Отзывы</a>
+    {% endif %}
+</nav>

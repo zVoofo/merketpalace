@@ -6,8 +6,6 @@
 
     {% if order.buyer == user %}
         <p class="order-role-badge order-role-badge--buyer">Вы покупатель</p>
-    {% elif order.seller == user %}
-        <p class="order-role-badge order-role-badge--seller">Вы продавец — откройте вкладку «Мне заказали» в списке заказов</p>
     {% endif %}
 
     <div class="order-detail-card">

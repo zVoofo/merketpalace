@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container hub-page">
+    {% include 'includes/hub_nav.html' %}
+
+    {% if tab == 'overview' %}
+        <header class="hub-head">
+            <h1 class="hub-head__title">Обзор</h1>
+            <a href="{% url 'accounts:cabinet' %}?tab=settings" class="btn btn--outline btn--sm">Настройки</a>
+        </header>
+
+        <div class="hub-overview">
+            <div class="hub-profile-card">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="" class="hub-profile-card__avatar">
+                {% else %}
+                    <div class="hub-profile-card__avatar hub-profile-card__avatar--empty">{{ user.first_name|default:user.username|slice:":1"|upper }}</div>
+                {% endif %}
+                <div class="hub-profile-card__info">
+                    <h2>{{ user.first_name|default:user.username }}</h2>
+                    <p>{{ user.email }}</p>
+                    <p class="hub-profile-card__role">
+                        {% if user.active_role == 'seller' %}Режим продавца{% else %}Режим покупателя{% endif %}
+                        {% if user.email_verified %}<span class="verified">✓ email</span>{% endif %}
+                    </p>
+                </div>
+                <form method="POST" class="hub-profile-card__role" data-confirm="Переключить режим?">
+                    {% csrf_token %}
+                    <input type="hidden" name="switch_role" value="1">
+                    <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">
+                    <button type="submit" class="btn btn--sm btn--outline">
+                        {% if user.active_role == 'seller' %}Стать покупателем{% else %}Стать продавцом{% endif %}
+                    </button>
+                </form>
+            </div>
+
+            <a href="{% url 'accounts:wallet' %}" class="wallet-card wallet-card--profile">
+                <div class="wallet-card__left">
+                    <span class="wallet-card__label">Кошелёк</span>
+                    <span class="wallet-card__balance">{{ wallet.balance|floatformat:0 }} ₽</span>
+                </div>
+                <span class="wallet-card__action">Пополнить →</span>
+            </a>
+
+            {% if user.active_role == 'seller' %}
+            <div class="hub-stats">
+                <div class="hub-stat"><span class="hub-stat__num">{{ active_count }}</span><span class="hub-stat__label">Активных</span></div>
+                <div class="hub-stat"><span class="hub-stat__num">{{ orders_count }}</span><span class="hub-stat__label">Заказов</span></div>
+                <div class="hub-stat"><span class="hub-stat__num">{% if rating_count %}★{{ rating_avg|floatformat:1 }}{% else %}—{% endif %}</span><span class="hub-stat__label">Рейтинг</span></div>
+                {% if incoming_count %}<div class="hub-stat hub-stat--accent"><span class="hub-stat__num">{{ incoming_count }}</span><span class="hub-stat__label">Откликов</span></div>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="hub-quick">
+                <a href="{% url 'orders:list' %}" class="hub-quick__link">📦 Заказы</a>
+                <a href="{% url 'chat:index' %}" class="hub-quick__link">💬 Сообщения</a>
+                <a href="{% url 'accounts:cabinet' %}?tab=requests" class="hub-quick__link">🔔 Заявки{% if incoming_count %} ({{ incoming_count }}){% endif %}</a>
+                {% if user.active_role == 'seller' %}
+                    <a href="{% url 'listings:create' %}" class="hub-quick__link">+ Объявление</a>
+                    <a href="{% url 'seller:listings' %}" class="hub-quick__link">📋 Мои товары</a>
+                    <a href="{% url 'accounts:cabinet' %}?tab=board" class="hub-quick__link">🔍 Доска</a>
+                {% endif %}
+            </div>
+        </div>
+
+    {% elif tab == 'requests' %}
+        <header class="hub-head">
+            <h1 class="hub-head__title">Заявки</h1>
+        </header>
+        {% include 'includes/hub_subnav.html' %}
+        <div class="hub-panel">
+            {% include 'includes/cabinet_requests_section.html' %}
+        </div>
+
+    {% elif tab == 'board' %}
+        <header class="hub-head">
+            <h1 class="hub-head__title">Доска покупателей</h1>
+            {% if seller_listings_count %}
+                <span class="hub-head__meta">{{ seller_listings_count }} ваших объявлений</span>
+            {% endif %}
+        </header>
+        {% include 'includes/hub_subnav.html' %}
+        <p class="hub-panel__lead">Откликнитесь на запрос — покупатель получит уведомление</p>
+        <div class="hub-panel">
+            {% include 'includes/looking_board_section.html' %}
+        </div>
+        {% if seller_listings_payload %}
+            {{ seller_listings_payload|json_script:"seller-listings-data" }}
+        {% endif %}
+
+    {% elif tab == 'settings' %}
+        <header class="hub-head">
+            <h1 class="hub-head__title">Настройки профиля</h1>
+            <a href="{% url 'accounts:cabinet' %}" class="btn btn--outline btn--sm">← Обзор</a>
+        </header>
+        <div class="profile-edit form form--wide hub-settings">
+            <form method="POST" enctype="multipart/form-data" data-confirm="Сохранить изменения?">
+                {% csrf_token %}
+                <input type="hidden" name="save_profile" value="1">
+                <h3 class="form__section-title">Личные данные</h3>
+                {% for field in form %}
+                    <div class="form__group">
+                        <label>{{ field.label }}</label>
+                        {% if field.name == 'avatar' %}
+                            <label class="avatar-upload">
+                                <input type="file" name="avatar" accept="image/*" hidden>
+                                <span class="avatar-upload__btn">📷 Выбрать фото</span>
+                                <span class="avatar-upload__name" id="avatar-filename">{% if user.avatar %}Фото загружено{% else %}Файл не выбран{% endif %}</span>
+                            </label>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        {% if field.errors %}<div class="form__error">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+                <h3 class="form__section-title">Организация (B2B)</h3>
+                {% for field in org_form %}
+                    <div class="form__group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn">Сохранить</button>
+            </form>
+
+            <div class="profile-verify profile-verify--compact" style="margin-top:32px">
+                <h3 class="profile-verify__title">Подтверждение контактов</h3>
+                <div class="profile-verify__grid">
+                    <div class="profile-verify__box">
+                        <strong>Email</strong>
+                        {% if user.email_verified %}
+                            <span class="verified">Подтверждён</span>
+                        {% else %}
+                            <form method="POST" class="profile-verify__form">
+                                {% csrf_token %}
+                                <input type="hidden" name="email" value="{{ user.email }}">
+                                <button type="submit" name="send_email_code" class="btn btn--sm btn--outline">Код на email</button>
+                            </form>
+                            <form method="POST" class="profile-verify__form">
+                                {% csrf_token %}
+                                <input type="hidden" name="email" value="{{ user.email }}">
+                                <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
+                                <button type="submit" name="verify_email" class="btn btn--sm">Подтвердить</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    <div class="profile-verify__box">
+                        <strong>Телефон</strong>
+                        {% if user.phone_verified %}
+                            <span class="verified">{{ user.phone }}</span>
+                        {% elif user.phone %}
+                            <form method="POST" class="profile-verify__form">
+                                {% csrf_token %}
+                                <input type="hidden" name="phone" value="{{ user.phone }}">
+                                <button type="submit" name="send_phone_code" class="btn btn--sm btn--outline">SMS-код</button>
+                            </form>
+                            <form method="POST" class="profile-verify__form">
+                                {% csrf_token %}
+                                <input type="hidden" name="phone" value="{{ user.phone }}">
+                                <input type="text" name="code" placeholder="000000" maxlength="6" class="profile-verify__code">
+                                <button type="submit" name="verify_phone" class="btn btn--sm">Подтвердить</button>
+                            </form>
+                        {% else %}
+                            <span class="profile-verify__pending">Не указан</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
