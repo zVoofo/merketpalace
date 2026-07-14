@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
@@ -13,8 +14,19 @@ from .moderation import schedule_auto_moderation
 def listing_detail(request, slug):
     listing = get_object_or_404(
         Listing.objects.select_related('category', 'brand', 'user').prefetch_related('images'),
-        slug=slug, status=Listing.Status.ACTIVE
+        slug=slug,
     )
+    if listing.status != Listing.Status.ACTIVE:
+        allowed = False
+        if request.user.is_authenticated:
+            if request.user == listing.user:
+                allowed = True
+            elif OrderItem.objects.filter(
+                listing=listing, order__buyer=request.user,
+            ).exists():
+                allowed = True
+        if not allowed:
+            raise Http404
     listing.views_count += 1
     listing.save(update_fields=['views_count'])
     similar = Listing.objects.filter(
@@ -118,11 +130,14 @@ def listing_edit(request, pk):
 
 @login_required
 def review_create(request, slug):
-    listing = get_object_or_404(Listing, slug=slug, status=Listing.Status.ACTIVE)
+    listing = get_object_or_404(Listing, slug=slug)
     can_review, reason = user_can_review(request.user, listing)
+    next_url = request.POST.get('next') or request.GET.get('next')
     if not can_review:
         messages.error(request, reason)
-        return redirect('listings:detail', slug=slug)
+        if next_url:
+            return redirect(next_url)
+        return redirect('orders:list')
     if request.method == 'POST':
         form = ReviewForm(request.POST)
         if form.is_valid():
@@ -134,7 +149,9 @@ def review_create(request, slug):
             review.save()
             update_listing_rating(listing)
             messages.success(request, 'Спасибо за отзыв!')
-    return redirect('listings:detail', slug=slug)
+            if next_url:
+                return redirect(next_url)
+    return redirect('orders:list')
 
 
 @login_required
@@ -161,33 +178,50 @@ def seller_dashboard(request):
     })
 
 
-@login_required
-def seller_looking_requests(request):
-    """Личный кабинет: все свои заявки «Ищу» и отклики."""
-    incoming_offers = list(SearchRequest.objects.filter(
-        user=request.user,
+def looking_requests_context(user):
+    """Контекст страницы «Мои заявки» — отклики, свои запросы, отправленные предложения."""
+    incoming_qs = SearchRequest.objects.filter(
+        user=user,
         status=SearchRequest.Status.FOUND,
         matched_listing__isnull=False,
-    ).select_related('matched_listing', 'matched_seller').prefetch_related(
+    ).select_related('matched_listing', 'matched_listing__user', 'matched_seller').prefetch_related(
         'matched_listing__images',
-    ).order_by('-created_at'))
-    my_requests = list(SearchRequest.objects.filter(
-        user=request.user,
-    ).order_by('-created_at'))
+    ).order_by('-created_at')
+    incoming_offers = []
+    for sr in incoming_qs:
+        if not sr.matched_listing or not sr.matched_listing.slug:
+            continue
+        if not sr.matched_seller_id and sr.matched_listing.user_id:
+            SearchRequest.objects.filter(pk=sr.pk).update(
+                matched_seller_id=sr.matched_listing.user_id,
+            )
+            sr.matched_seller_id = sr.matched_listing.user_id
+        incoming_offers.append(sr)
+
+    my_requests = list(SearchRequest.objects.filter(user=user).order_by('-created_at'))
     sent_offers = list(SearchRequest.objects.filter(
-        matched_seller=request.user,
+        matched_listing__user=user,
         status=SearchRequest.Status.FOUND,
         matched_listing__isnull=False,
     ).select_related('matched_listing', 'user').prefetch_related(
         'matched_listing__images',
     ).order_by('-created_at'))
-    return render(request, 'seller/requests.html', {
-        'title': 'Мои заявки',
+
+    return {
         'incoming_offers': incoming_offers,
         'incoming_count': len(incoming_offers),
         'my_requests': my_requests,
         'sent_offers': sent_offers,
         'sent_count': len(sent_offers),
+    }
+
+
+@login_required
+def seller_looking_requests(request):
+    """Личный кабинет: все свои заявки «Ищу» и отклики."""
+    return render(request, 'seller/requests.html', {
+        'title': 'Мои заявки',
+        **looking_requests_context(request.user),
     })
 
 

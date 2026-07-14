@@ -16,6 +16,7 @@ from .models import User, Organization, WalletTransaction, SocialAccount
 from .middleware import log_action
 from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
+from listings.views import looking_requests_context
 
 
 def staff_required(view_func):
@@ -241,6 +242,16 @@ def profile_view(request):
         'wallet': wallet, 'verify_form': verify_form,
         'looking_incoming_count': looking_incoming_count,
         'org': org, 'edit_mode': edit_mode,
+    })
+
+
+@login_required
+def my_requests_view(request):
+    """Отклики и заявки «Ищу» для покупателя (без раздела /seller/)."""
+    return render(request, 'seller/requests.html', {
+        'title': 'Мои заявки',
+        'buyer_requests_page': True,
+        **looking_requests_context(request.user),
     })
 
 

@@ -3,7 +3,11 @@
 
 {% block content %}
 <div class="container">
-    {% include 'includes/cabinet_nav.html' with active='requests' requests_badge=incoming_count %}
+    {% if buyer_requests_page %}
+        <p style="margin-bottom:12px"><a href="{% url 'accounts:profile' %}">← Профиль</a></p>
+    {% else %}
+        {% include 'includes/cabinet_nav.html' with active='requests' requests_badge=incoming_count %}
+    {% endif %}
 
     <h1 style="margin-top:20px">Мои заявки</h1>
     <p class="page-lead">Всё, что связано с вашими запросами «Ищу» — в одном месте</p>
@@ -58,14 +62,14 @@
                             <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>
                         </span>
                     </a>
+                    <div class="looking-widget__actions">
+                        <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать покупателю</a>
+                        <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отозвать предложение?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Отозвать</button>
+                        </form>
+                    </div>
                 {% endif %}
-                <div class="looking-widget__actions">
-                    <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать покупателю</a>
-                    <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отозвать предложение?')">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Отозвать</button>
-                    </form>
-                </div>
             </div>
         {% endfor %}
     </section>

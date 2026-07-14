@@ -13,6 +13,42 @@ from .models import Cart, CartItem, Order, OrderItem
 from .context_processors import get_or_create_cart
 
 
+def _safe_int(value, default=1, min_val=1):
+    try:
+        return max(min_val, int(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _order_action_flags(order, user):
+    """Какие кнопки и подсказки показать на странице заказа."""
+    ship = (
+        user == order.seller
+        and order.status in (Order.Status.PAID, Order.Status.PROCESSING)
+    )
+    complete = (
+        user == order.buyer
+        and order.status in (Order.Status.SHIPPED, Order.Status.DELIVERED)
+    )
+    seller_wait = user == order.seller and order.status in (
+        Order.Status.SHIPPED, Order.Status.DELIVERED,
+    )
+    buyer_wait = (
+        user == order.buyer
+        and order.status in (Order.Status.PAID, Order.Status.PROCESSING)
+    )
+    buyer_pending_pay = user == order.buyer and order.status == Order.Status.PENDING
+    seller_pending_pay = user == order.seller and order.status == Order.Status.PENDING
+    return {
+        'show_ship_btn': ship,
+        'show_complete_btn': complete,
+        'order_hint_seller_wait': seller_wait,
+        'order_hint_buyer_wait': buyer_wait,
+        'order_hint_buyer_pending': buyer_pending_pay,
+        'order_hint_seller_pending': seller_pending_pay,
+    }
+
+
 def is_own_listing(user, listing) -> bool:
     return user.is_authenticated and listing.user_id == user.id
 
@@ -36,9 +72,7 @@ class CheckoutForm(forms.Form):
 def cart_view(request):
     cart = get_or_create_cart(request)
     if request.user.is_authenticated:
-        removed = cart.items.filter(listing__user=request.user).delete()[0]
-        if removed:
-            messages.info(request, 'Свои объявления нельзя заказать — убрали из корзины')
+        cart.items.filter(listing__user=request.user).delete()
     items = cart.items.select_related('listing').all()
     return render(request, 'orders/cart.html', {
         'title': 'Корзина',
@@ -50,14 +84,18 @@ def cart_view(request):
 
 def cart_add(request):
     if request.method == 'POST':
-        listing = get_object_or_404(Listing, pk=request.POST.get('listing_id'), status=Listing.Status.ACTIVE)
+        listing_id = request.POST.get('listing_id')
+        if not listing_id or not str(listing_id).isdigit():
+            messages.error(request, 'Не указан товар')
+            return redirect('cart')
+        listing = get_object_or_404(Listing, pk=int(listing_id), status=Listing.Status.ACTIVE)
         if is_own_listing(request.user, listing):
             messages.error(request, 'Нельзя заказать своё объявление')
             next_url = request.POST.get('next')
             if next_url:
                 return redirect(next_url)
             return redirect('listings:detail', slug=listing.slug)
-        qty = max(1, int(request.POST.get('quantity', 1)))
+        qty = _safe_int(request.POST.get('quantity', 1))
         if listing.quantity < qty:
             messages.error(request, 'Недостаточно товара на складе')
         else:
@@ -178,6 +216,13 @@ def checkout_view(request):
                     if not _process_payment(request, order, method, subtotal):
                         raise ValueError('Оплата не прошла')
                     cart.items.all().delete()
+                notify(
+                    seller,
+                    'order',
+                    f'Новый заказ {order.order_number}',
+                    f'Сумма {int(subtotal)} ₽. Откройте заказ и нажмите «Отправить» после отправки товара.',
+                    f'/orders/{order.pk}/',
+                )
                 messages.success(request, f'Заказ оформлен! № {order.order_number}')
                 return redirect('orders:detail', pk=order.pk)
             except ValueError as e:
@@ -221,11 +266,15 @@ def order_detail(request, pk):
     if order.buyer != request.user and order.seller != request.user and not request.user.is_staff:
         return render(request, 'errors/403.html', {'title': 'Доступ запрещён'}, status=403)
 
-    listing = order.items.first().listing if order.items.exists() else None
+    listing = None
+    first_item = order.items.select_related('listing').first()
+    if first_item:
+        listing = first_item.listing
+
     can_review = False
     review_block_reason = ''
     review_form = None
-    if request.user == order.buyer and listing:
+    if request.user == order.buyer and order.status == Order.Status.COMPLETED and listing:
         can_review, review_block_reason = user_can_review(request.user, listing)
         if can_review:
             review_form = ReviewForm()
@@ -237,6 +286,7 @@ def order_detail(request, pk):
         'can_review': can_review,
         'review_block_reason': review_block_reason,
         'review_form': review_form,
+        **_order_action_flags(order, request.user),
     })
 
 

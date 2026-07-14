@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% load static listing_extras %}
 
 
@@ -54,10 +53,8 @@
 
                         {% endif %}
 
-                        {% if l.status == 'rejected' and rejection_reasons.l.id %}
-
-                            <div class="listing-reject-reason">{{ rejection_reasons.l.id }}</div>
-
+                        {% if l.status == 'rejected' and rejection_reasons|dict_get:l.id %}
+                            <div class="listing-reject-reason">{{ rejection_reasons|dict_get:l.id }}</div>
                         {% endif %}
 
                     </td>

@@ -52,6 +52,7 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         CARD = 'card', 'Карта'
         WALLET = 'wallet', 'Кошелёк'
+        YUKASSA = 'yukassa', 'ЮKassa'
         POSTPAY = 'postpay', 'Пост-оплата'
         ESCROW = 'escrow', 'Безопасная сделка'
 

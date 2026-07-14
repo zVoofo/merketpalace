@@ -110,6 +110,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
         <form method="POST" class="chat-input" id="chat-form" enctype="multipart/form-data">
             {% csrf_token %}
             <label class="chat-attach-btn" title="Прикрепить файл">

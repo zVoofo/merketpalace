@@ -144,7 +144,7 @@ def search_request_view(request):
     )
     messages.success(request, 'Заявка на поиск отправлена!')
     if request.user.is_authenticated:
-        return redirect('seller:requests')
+        return redirect('accounts:my_requests')
     return redirect('catalog:looking')
 
 
@@ -180,7 +180,10 @@ def respond_to_search(request, pk):
         messages.error(request, 'Нельзя предложить товар на свою же заявку')
         return redirect('catalog:looking')
     listing_id = request.POST.get('listing_id')
-    listing = get_object_or_404(Listing, pk=listing_id, user=request.user, status=Listing.Status.ACTIVE)
+    if not listing_id or not str(listing_id).isdigit():
+        messages.error(request, 'Выберите объявление')
+        return redirect('catalog:looking')
+    listing = get_object_or_404(Listing, pk=int(listing_id), user=request.user, status=Listing.Status.ACTIVE)
     sr.matched_listing = listing
     sr.matched_seller = request.user
     sr.status = SearchRequest.Status.FOUND
@@ -192,7 +195,7 @@ def respond_to_search(request, pk):
             'search_offer',
             f'Отклик на заявку «{sr.query}»',
             f'Продавец {request.user.first_name or request.user.username} предложил: {listing.title}',
-            '/seller/requests/#offers',
+            '/accounts/my-requests/#offers',
         )
     messages.success(request, f'Вы предложили «{listing.title}» на заявку')
     return redirect(reverse('seller:requests') + '#sent')
@@ -203,12 +206,12 @@ def respond_to_search(request, pk):
 def decline_search_offer(request, pk):
     """Покупатель отклоняет предложение — заявка снова в «Ищу», продавец получает уведомление."""
     sr = get_object_or_404(SearchRequest, pk=pk, user=request.user, status=SearchRequest.Status.FOUND)
-    if not sr.matched_listing or not sr.matched_seller:
+    seller = sr.matched_seller or (sr.matched_listing.user if sr.matched_listing else None)
+    if not sr.matched_listing or not seller:
         messages.error(request, 'Нет активного предложения для отклонения')
-        return redirect(reverse('seller:requests') + '#offers')
+        return redirect(reverse('accounts:my_requests') + '#offers')
 
     listing_title = sr.matched_listing.title
-    seller = sr.matched_seller
     query = sr.query
 
     sr.matched_listing = None
@@ -226,7 +229,7 @@ def decline_search_offer(request, pk):
     )
 
     messages.success(request, 'Предложение отклонено. Заявка снова видна продавцам.')
-    return redirect(reverse('seller:requests') + '#offers')
+    return redirect(reverse('accounts:my_requests') + '#offers')
 
 
 @login_required
@@ -234,7 +237,10 @@ def decline_search_offer(request, pk):
 def withdraw_search_offer(request, pk):
     """Продавец отзывает своё предложение."""
     sr = get_object_or_404(
-        SearchRequest, pk=pk, matched_seller=request.user, status=SearchRequest.Status.FOUND,
+        SearchRequest,
+        pk=pk,
+        matched_listing__user=request.user,
+        status=SearchRequest.Status.FOUND,
     )
     if not sr.matched_listing:
         messages.error(request, 'Нет активного предложения')
@@ -256,7 +262,7 @@ def withdraw_search_offer(request, pk):
             'search_offer',
             f'Предложение отозвано — «{query}»',
             f'Продавец отозвал предложение «{listing_title}». Можете дождаться других откликов.',
-            '/seller/requests/',
+            '/accounts/my-requests/',
         )
 
     messages.success(request, 'Предложение отозвано. Заявка снова в общем списке.')

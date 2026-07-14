@@ -7,7 +7,7 @@
 
     {% if looking_incoming_count %}
         <p class="profile-looking-banner">
-            <a href="{% url 'seller:requests' %}" class="btn btn--sm">
+            <a href="{% url 'accounts:my_requests' %}#offers" class="btn btn--sm">
                 🔔 {{ looking_incoming_count }} отклик{{ looking_incoming_count|pluralize:"ов" }} — Мои заявки
             </a>
         </p>
