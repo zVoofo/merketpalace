@@ -6,7 +6,7 @@
     <div class="form form--wide">
         <ul style="margin-bottom:20px">{% for item in items %}<li>{{ item.listing.title }} × {{ item.quantity }} — {{ item.subtotal|floatformat:0 }} ₽</li>{% endfor %}</ul>
         <p style="font-weight:700;margin-bottom:20px">Итого: {{ total|floatformat:0 }} ₽</p>
-        <form method="POST">
+        <form method="POST" data-confirm="Подтвердить заказ и перейти к оплате?">
             {% csrf_token %}
             {% for field in form %}
                 <div class="form__group"><label>{{ field.label }}</label>{{ field }}</div>

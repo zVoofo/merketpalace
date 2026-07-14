@@ -64,7 +64,7 @@
                     </a>
                     <div class="looking-widget__actions">
                         <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать покупателю</a>
-                        <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отозвать предложение?')">
+                        <form method="POST" action="{% url 'catalog:withdraw_offer' sr.pk %}" class="inline-form" data-confirm="Отозвать предложение?">
                             {% csrf_token %}
                             <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Отозвать</button>
                         </form>

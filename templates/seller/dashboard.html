@@ -11,6 +11,10 @@
         <div class="stat"><div class="stat__num">{{ archived_count }}</div><div class="stat__label">В архиве</div></div>
         <div class="stat"><div class="stat__num">{{ total_views }}</div><div class="stat__label">Просмотров</div></div>
         <div class="stat"><div class="stat__num">{{ orders_count }}</div><div class="stat__label">Заказов</div></div>
+        <div class="stat">
+            <div class="stat__num">{% if rating_count %}★ {{ rating_avg|floatformat:1 }}{% else %}—{% endif %}</div>
+            <div class="stat__label">Рейтинг{% if rating_count %} ({{ rating_count }}){% endif %}</div>
+        </div>
     </div>
     <div class="seller-actions" style="margin-bottom:24px">
         <a href="{% url 'listings:create' %}" class="btn">+ Новое объявление</a>

@@ -161,7 +161,7 @@ def looking_board(request):
         from listings.models import Listing
         seller_listings = list(Listing.objects.filter(
             user=request.user, status=Listing.Status.ACTIVE,
-        ).order_by('-updated_at'))
+        ).prefetch_related('images').order_by('-updated_at'))
 
     return render(request, 'catalog/looking.html', {
         'title': 'Заявки покупателей',
@@ -179,16 +179,24 @@ def respond_to_search(request, pk):
     if sr.user_id == request.user.id:
         messages.error(request, 'Нельзя предложить товар на свою же заявку')
         return redirect('catalog:looking')
+    if sr.status not in (SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS):
+        messages.error(request, 'На эту заявку уже есть отклик')
+        return redirect('catalog:looking')
     listing_id = request.POST.get('listing_id')
     if not listing_id or not str(listing_id).isdigit():
         messages.error(request, 'Выберите объявление')
         return redirect('catalog:looking')
-    listing = get_object_or_404(Listing, pk=int(listing_id), user=request.user, status=Listing.Status.ACTIVE)
+    listing = Listing.objects.filter(
+        pk=int(listing_id), user=request.user, status=Listing.Status.ACTIVE,
+    ).first()
+    if not listing:
+        messages.error(request, 'Объявление не найдено или снято с публикации')
+        return redirect('catalog:looking')
     sr.matched_listing = listing
     sr.matched_seller = request.user
     sr.status = SearchRequest.Status.FOUND
     sr.response_seen = False
-    sr.save()
+    sr.save(update_fields=['matched_listing', 'matched_seller', 'status', 'response_seen'])
     if sr.user:
         notify(
             sr.user,
@@ -197,8 +205,8 @@ def respond_to_search(request, pk):
             f'Продавец {request.user.first_name or request.user.username} предложил: {listing.title}',
             '/accounts/my-requests/#offers',
         )
-    messages.success(request, f'Вы предложили «{listing.title}» на заявку')
-    return redirect(reverse('seller:requests') + '#sent')
+    messages.success(request, f'Вы предложили «{listing.title}» на заявку «{sr.query}»')
+    return redirect(reverse('catalog:looking') + '#board')
 
 
 @login_required

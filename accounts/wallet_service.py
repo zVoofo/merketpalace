@@ -38,3 +38,19 @@ def pay_from_wallet(user, amount: Decimal, order=None, description: str = 'Оп�
         description=description, order=order,
     )
     return wallet
+
+
+@transaction.atomic
+def refund_to_wallet(user, amount: Decimal, order=None, description: str = 'Возврат'):
+    amount = Decimal(str(amount))
+    if amount <= 0:
+        return get_wallet(user)
+    wallet = get_wallet(user)
+    wallet.balance += amount
+    wallet.save(update_fields=['balance'])
+    WalletTransaction.objects.create(
+        wallet=wallet, amount=amount,
+        tx_type=WalletTransaction.TxType.REFUND,
+        description=description, order=order,
+    )
+    return wallet

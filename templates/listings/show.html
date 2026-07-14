@@ -56,7 +56,7 @@
                     <span>Купить у себя нельзя — управляйте им в <a href="{% url 'seller:listings' %}">Мои объявления</a></span>
                 </div>
             {% elif listing.in_stock %}
-                <form method="POST" action="{% url 'cart_add' %}">
+                <form method="POST" action="{% url 'cart_add' %}" data-confirm="Добавить товар в корзину?">
                     {% csrf_token %}
                     <input type="hidden" name="listing_id" value="{{ listing.id }}">
                     <input type="hidden" name="next" value="{{ request.path }}">
@@ -99,7 +99,7 @@
     {% if user.is_authenticated and user != listing.user %}
         {% if review_form %}
             <h2 class="section-title">Оставить отзыв</h2>
-            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form">
+            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" data-confirm="Отправить отзыв?">
                 {% csrf_token %}
                 {{ review_form.as_p }}
                 <button type="submit" class="btn">Отправить</button>

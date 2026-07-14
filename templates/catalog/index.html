@@ -57,7 +57,7 @@
         {% elif zero_result %}
             <div class="zero-result">
                 <h2>Товар не найден на MarketPlace</h2>
-                <form method="POST" action="{% url 'catalog:search_request' %}" class="zero-result__form">
+                <form method="POST" action="{% url 'catalog:search_request' %}" class="zero-result__form" data-confirm="Создать заявку «Ищу»? Продавцы смогут предложить товар.">
                     {% csrf_token %}
                     <input type="hidden" name="query" value="{{ search_query }}">
                     <div class="form__group"><textarea name="description" placeholder="Опишите что ищете..."></textarea></div>

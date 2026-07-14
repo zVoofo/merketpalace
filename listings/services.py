@@ -56,3 +56,11 @@ def update_listing_rating(listing):
     listing.rating_avg = agg['avg'] or 0
     listing.rating_count = agg['cnt'] or 0
     listing.save(update_fields=['rating_avg', 'rating_count'])
+
+
+def get_seller_rating(user):
+    from django.db.models import Avg, Count
+    agg = Review.objects.filter(
+        seller=user, status=Review.Status.APPROVED,
+    ).aggregate(avg=Avg('rating'), cnt=Count('id'))
+    return agg['avg'], agg['cnt'] or 0

@@ -22,6 +22,18 @@
         <span class="wallet-card__action">Пополнить →</span>
     </a>
 
+    <div class="profile-rating-card">
+        <div class="profile-rating-card__value">
+            {% if rating_count %}
+                <span class="stars">★ {{ rating_avg|floatformat:1 }}</span>
+                <span class="profile-rating-card__count">{{ rating_count }} отзыв{{ rating_count|pluralize:"ов" }}</span>
+            {% else %}
+                <span class="profile-rating-card__empty">Рейтинг появится после отзывов покупателей</span>
+            {% endif %}
+        </div>
+        <a href="{% url 'seller:reviews' %}" class="btn btn--sm btn--outline">Все отзывы →</a>
+    </div>
+
     <div class="profile-view" id="profile-view">
         <div class="profile-card profile-card--view">
             {% if user.avatar %}
@@ -44,7 +56,7 @@
             </div>
             <div class="profile-view__actions">
                 <button type="button" class="btn" id="profile-edit-open">Редактировать профиль</button>
-                <form method="POST" class="profile-role-form">
+                <form method="POST" class="profile-role-form" data-confirm="Переключить режим работы?">
                     {% csrf_token %}
                     <input type="hidden" name="switch_role" value="1">
                     <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">
@@ -105,7 +117,7 @@
             <h2>Редактирование профиля</h2>
             <button type="button" class="btn btn--outline btn--sm" id="profile-edit-close">Отмена</button>
         </div>
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" data-confirm="Сохранить изменения профиля?">
             {% csrf_token %}
             <input type="hidden" name="save_profile" value="1">
             <h3 class="form__section-title">Личные данные</h3>

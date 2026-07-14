@@ -7,7 +7,7 @@ from orders.models import OrderItem
 from catalog.models import Category, Brand, SearchRequest
 from .models import Listing, ModerationQueue, Review
 from .forms import ListingForm, ReviewForm, validate_media_files
-from .services import save_listing_media, user_can_review, update_listing_rating, remoderate_listing
+from .services import save_listing_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating
 from .moderation import schedule_auto_moderation
 
 
@@ -166,6 +166,7 @@ def seller_dashboard(request):
         status=SearchRequest.Status.FOUND,
         matched_listing__isnull=False,
     ).count()
+    rating_avg, rating_count = get_seller_rating(request.user)
     return render(request, 'seller/dashboard.html', {
         'title': 'Кабинет продавца',
         'listings_count': listings.count(),
@@ -175,6 +176,8 @@ def seller_dashboard(request):
         'orders_count': orders_count,
         'open_looking_count': open_looking_count,
         'incoming_count': incoming_count,
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
     })
 
 
@@ -214,6 +217,26 @@ def looking_requests_context(user):
         'sent_offers': sent_offers,
         'sent_count': len(sent_offers),
     }
+
+
+@login_required
+def seller_reviews(request):
+    reviews = Review.objects.filter(
+        seller=request.user, status=Review.Status.APPROVED,
+    ).select_related('reviewer', 'listing').order_by('-created_at')
+    rating_avg, rating_count = get_seller_rating(request.user)
+    incoming_count = SearchRequest.objects.filter(
+        user=request.user,
+        status=SearchRequest.Status.FOUND,
+        matched_listing__isnull=False,
+    ).count()
+    return render(request, 'seller/reviews.html', {
+        'title': 'Отзывы',
+        'reviews': reviews,
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
+        'incoming_count': incoming_count,
+    })
 
 
 @login_required

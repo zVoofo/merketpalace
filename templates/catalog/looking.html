@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static listing_extras %}
 
 {% block content %}
 <div class="container looking-hub">
@@ -21,16 +22,16 @@
                     {% if sr.user %} · {{ sr.user.first_name|default:sr.user.username }}{% endif %}
                 </p>
                 {% if user.is_authenticated and user.active_role == 'seller' %}
-                    <form method="POST" action="{% url 'catalog:respond' sr.pk %}" class="looking-respond-form">
-                        {% csrf_token %}
-                        <select name="listing_id" required>
-                            <option value="">Выберите ваше объявление...</option>
-                            {% for l in seller_listings %}
-                                <option value="{{ l.id }}">{{ l.title }} — {{ l.price|floatformat:0 }} ₽</option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="btn btn--sm">Предложить</button>
-                    </form>
+                    {% if seller_listings %}
+                        <button type="button"
+                                class="btn btn--sm looking-offer-btn"
+                                data-request-id="{{ sr.pk }}"
+                                data-query="{{ sr.query }}">
+                            Предложить товар
+                        </button>
+                    {% else %}
+                        <p class="looking-card__hint">Нет активных объявлений — <a href="{% url 'listings:create' %}">создайте объявление</a>, чтобы откликнуться</p>
+                    {% endif %}
                 {% elif user.is_authenticated %}
                     <p class="looking-card__hint"><a href="{% url 'accounts:profile' %}">Переключитесь в режим продавца</a>, чтобы предложить товар</p>
                 {% else %}
@@ -42,4 +43,41 @@
         {% endfor %}
     </section>
 </div>
+
+{% if user.is_authenticated and user.active_role == 'seller' and seller_listings %}
+<div class="listing-picker" id="listing-picker" hidden>
+    <div class="listing-picker__backdrop" data-picker-close></div>
+    <div class="listing-picker__dialog" role="dialog" aria-labelledby="listing-picker-title">
+        <div class="listing-picker__head">
+            <div>
+                <h3 class="listing-picker__title" id="listing-picker-title">Выберите объявление</h3>
+                <p class="listing-picker__query" id="listing-picker-query"></p>
+            </div>
+            <button type="button" class="listing-picker__close" data-picker-close aria-label="Закрыть">×</button>
+        </div>
+        <input type="search" class="listing-picker__search" id="listing-picker-search" placeholder="Поиск по названию..." autocomplete="off">
+        <p class="listing-picker__count" id="listing-picker-count"></p>
+        <div class="listing-picker__grid" id="listing-picker-grid">
+            {% for l in seller_listings %}
+                <button type="button"
+                        class="listing-pick-card"
+                        data-id="{{ l.id }}"
+                        data-title="{{ l.title|lower }}">
+                    <img src="{% listing_image_url l %}" alt="" class="listing-pick-card__img" width="64" height="64" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                    <span class="listing-pick-card__info">
+                        <span class="listing-pick-card__title">{{ l.title }}</span>
+                        <span class="listing-pick-card__price">{{ l.price|floatformat:0 }} ₽</span>
+                    </span>
+                </button>
+            {% endfor %}
+        </div>
+        <form method="POST" id="listing-picker-form" class="listing-picker__footer" data-confirm="Отправить предложение покупателю?">
+            {% csrf_token %}
+            <input type="hidden" name="listing_id" id="listing-picker-id" value="">
+            <p class="listing-picker__selected" id="listing-picker-selected">Нажмите на объявление выше</p>
+            <button type="submit" class="btn" id="listing-picker-submit" disabled>Предложить</button>
+        </form>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

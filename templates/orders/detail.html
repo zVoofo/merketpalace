@@ -34,13 +34,13 @@
 
     <div class="order-actions">
         {% if show_ship_btn %}
-            <form method="POST" action="{% url 'orders:ship' order.pk %}" class="inline-form" onsubmit="return confirm('Отметить заказ как отправленный?')">
+            <form method="POST" action="{% url 'orders:ship' order.pk %}" class="inline-form" data-confirm="Отметить заказ как отправленный? Покупатель получит уведомление.">
                 {% csrf_token %}
                 <button type="submit" class="btn">📦 Отправить</button>
             </form>
             <p class="order-actions__hint">Покупатель получит уведомление об отправке</p>
         {% elif show_complete_btn %}
-            <form method="POST" action="{% url 'orders:complete' order.pk %}" class="inline-form" onsubmit="return confirm('Подтвердить, что товар получен?')">
+            <form method="POST" action="{% url 'orders:complete' order.pk %}" class="inline-form" data-confirm="Подтвердить, что товар получен? Заказ будет завершён.">
                 {% csrf_token %}
                 <button type="submit" class="btn btn--accent">✓ Товар пришёл</button>
             </form>
@@ -55,6 +55,15 @@
             <p class="order-actions__hint">Заказ ожидает оплаты</p>
         {% elif order.status == 'completed' %}
             <p class="order-actions__hint">✓ Заказ завершён</p>
+        {% elif order.status == 'cancelled' %}
+            <p class="order-actions__hint">Заказ отменён</p>
+        {% endif %}
+
+        {% if show_cancel_btn %}
+            <form method="POST" action="{% url 'orders:cancel' order.pk %}" class="inline-form order-cancel-form" data-confirm="Отменить заказ? Товар вернётся на склад{% if order.payment_method == 'wallet' and order.payment_status == 'paid' %}, средства — на кошелёк{% endif %}.">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--outline btn--danger">✕ Отменить заказ</button>
+            </form>
         {% endif %}
     </div>
 
@@ -62,7 +71,7 @@
         <section class="order-review">
             <h2 class="section-title">Отзыв продавцу</h2>
             {% if review_form and listing %}
-                <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form">
+                <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" data-confirm="Отправить отзыв продавцу?">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'orders:detail' order.pk %}">
                     {% for field in review_form %}

@@ -15,7 +15,7 @@
             </a>
             <div class="looking-widget__actions">
                 <a href="{% url 'chat:start' sr.matched_listing.id %}" class="btn btn--sm btn--outline">Написать продавцу</a>
-                <form method="POST" action="{% url 'catalog:decline_offer' sr.pk %}" class="inline-form" onsubmit="return confirm('Отклонить это предложение? Заявка снова появится в общем списке.')">
+                <form method="POST" action="{% url 'catalog:decline_offer' sr.pk %}" class="inline-form" data-confirm="Отклонить это предложение? Заявка снова появится в общем списке.">
                     {% csrf_token %}
                     <button type="submit" class="btn btn--sm btn--outline looking-widget__decline">Не подходит</button>
                 </form>

@@ -12,10 +12,12 @@ from .forms import RegisterForm, LoginForm, ProfileForm, OrganizationForm, Verif
 from .verification import send_email_verification, verify_email_code, send_phone_verification, verify_phone_code
 from .wallet_forms import TopUpForm
 from .wallet_service import get_wallet, deposit
+from .notifications import normalize_notification_link
 from .models import User, Organization, WalletTransaction, SocialAccount
 from .middleware import log_action
 from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
+from listings.services import get_seller_rating
 from listings.views import looking_requests_context
 
 
@@ -237,11 +239,15 @@ def profile_view(request):
             matched_listing__isnull=False,
         ).count()
 
+    rating_avg, rating_count = get_seller_rating(request.user)
+
     return render(request, 'accounts/profile.html', {
         'title': 'Профиль', 'form': form, 'org_form': org_form,
         'wallet': wallet, 'verify_form': verify_form,
         'looking_incoming_count': looking_incoming_count,
         'org': org, 'edit_mode': edit_mode,
+        'rating_avg': rating_avg,
+        'rating_count': rating_count,
     })
 
 
@@ -343,6 +349,17 @@ def panel_verify_user(request, pk):
     user.save()
     Organization.objects.filter(user=user).update(is_verified=True)
     return redirect('panel:users')
+
+
+@login_required
+def notification_open(request, pk):
+    """Безопасный переход по уведомлению — исправляет старые битые ссылки."""
+    from .models import Notification
+    n = get_object_or_404(Notification, pk=pk, user=request.user)
+    if not n.is_read:
+        n.is_read = True
+        n.save(update_fields=['is_read'])
+    return redirect(normalize_notification_link(n.link))
 
 
 @login_required

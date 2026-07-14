@@ -1,4 +1,26 @@
+from django.urls import reverse
 from .models import Notification
+
+
+LINK_ALIASES = {
+    '/seller/requests/#offers': lambda: reverse('accounts:my_requests') + '#offers',
+    '/seller/requests/': lambda: reverse('accounts:my_requests'),
+    '/seller/requests/#sent': lambda: reverse('seller:requests') + '#sent',
+}
+
+
+def normalize_notification_link(link: str) -> str:
+    link = (link or '').strip()
+    if not link or link == '#':
+        return reverse('home')
+    if link in LINK_ALIASES:
+        return LINK_ALIASES[link]()
+    if link.startswith('/seller/requests'):
+        suffix = '#' + link.split('#', 1)[1] if '#' in link else ''
+        return reverse('accounts:my_requests') + suffix
+    if link.startswith('/') and not link.startswith('//'):
+        return link
+    return reverse('home')
 
 
 def notify(user, ntype: str, title: str, body: str = '', link: str = ''):
@@ -9,7 +31,7 @@ def notify(user, ntype: str, title: str, body: str = '', link: str = ''):
         ntype=ntype,
         title=title,
         body=body,
-        link=link,
+        link=normalize_notification_link(link) if link else '',
     )
 
 

@@ -9,6 +9,24 @@ document.getElementById('burger')?.addEventListener('click', () => {
   document.querySelector('.nav')?.scrollTo(0, 0);
 })();
 
+/* --- Подтверждение действий (data-confirm) --- */
+(function initConfirmDialogs() {
+  document.addEventListener('submit', (e) => {
+    const form = e.target.closest('form[data-confirm]');
+    if (!form) return;
+    if (!window.confirm(form.dataset.confirm)) e.preventDefault();
+  });
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-confirm]');
+    if (!el || el.tagName === 'FORM') return;
+    if (!window.confirm(el.dataset.confirm)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+})();
+
 /* --- Фильтр цены --- */
 (function initPriceRange() {
   const minRange = document.getElementById('price-min-range');
@@ -407,6 +425,43 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   });
 })();
 
+/* --- Чат: всегда показывать последние сообщения --- */
+(function initChatScroll() {
+  const box = document.getElementById('chat-messages');
+  if (!box) return;
+
+  const scrollToBottom = (smooth) => {
+    const end = document.getElementById('chat-end');
+    if (end) {
+      end.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'instant' });
+      return;
+    }
+    const top = box.scrollHeight - box.clientHeight;
+    box.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
+  };
+
+  scrollToBottom(false);
+  requestAnimationFrame(() => scrollToBottom(false));
+
+  window.addEventListener('load', () => scrollToBottom(false));
+
+  box.querySelectorAll('img, video').forEach((el) => {
+    el.addEventListener('load', () => scrollToBottom(false));
+  });
+
+  // Перед отправкой — чтобы после перезагрузки оставаться внизу (браузер запомнит якорь)
+  const form = document.getElementById('chat-form');
+  form?.addEventListener('submit', () => {
+    sessionStorage.setItem('chat-scroll-bottom', '1');
+  });
+
+  if (sessionStorage.getItem('chat-scroll-bottom')) {
+    sessionStorage.removeItem('chat-scroll-bottom');
+    setTimeout(() => scrollToBottom(false), 0);
+    setTimeout(() => scrollToBottom(false), 100);
+  }
+})();
+
 /* --- Поддержка: быстрые вопросы --- */
 (function initSupportQuick() {
   const grid = document.getElementById('support-quick');
@@ -495,5 +550,150 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (!gallery.matches(':hover') && document.activeElement !== document.body) return;
     if (e.key === 'ArrowLeft') show(idx - 1);
     if (e.key === 'ArrowRight') show(idx + 1);
+  });
+})();
+
+/* --- Заявки: выбор объявления в модальном окне --- */
+(function initListingPicker() {
+  const picker = document.getElementById('listing-picker');
+  const form = document.getElementById('listing-picker-form');
+  const grid = document.getElementById('listing-picker-grid');
+  const search = document.getElementById('listing-picker-search');
+  const hiddenId = document.getElementById('listing-picker-id');
+  const submitBtn = document.getElementById('listing-picker-submit');
+  const selectedLabel = document.getElementById('listing-picker-selected');
+  const queryLabel = document.getElementById('listing-picker-query');
+  const countLabel = document.getElementById('listing-picker-count');
+  if (!picker || !form || !grid) return;
+
+  const cards = [...grid.querySelectorAll('.listing-pick-card')];
+  let selectedCard = null;
+
+  const updateCount = () => {
+    const visible = cards.filter((c) => !c.hidden).length;
+    if (countLabel) countLabel.textContent = visible ? `Показано: ${visible} из ${cards.length}` : 'Ничего не найдено';
+  };
+
+  const close = () => {
+    picker.hidden = true;
+    document.body.style.overflow = '';
+    selectedCard = null;
+    cards.forEach((c) => c.classList.remove('is-selected'));
+    if (hiddenId) hiddenId.value = '';
+    if (submitBtn) submitBtn.disabled = true;
+    if (selectedLabel) selectedLabel.textContent = 'Нажмите на объявление выше';
+    if (search) search.value = '';
+    cards.forEach((c) => { c.hidden = false; });
+    updateCount();
+  };
+
+  const open = (requestId, query) => {
+    form.action = '/catalog/looking/' + requestId + '/respond/';
+    if (queryLabel) queryLabel.textContent = 'Заявка: «' + query + '»';
+    picker.hidden = false;
+    document.body.style.overflow = 'hidden';
+    updateCount();
+    search?.focus();
+  };
+
+  const selectCard = (card) => {
+    selectedCard = card;
+    cards.forEach((c) => c.classList.remove('is-selected'));
+    card.classList.add('is-selected');
+    if (hiddenId) hiddenId.value = card.dataset.id || '';
+    if (submitBtn) submitBtn.disabled = false;
+    const title = card.querySelector('.listing-pick-card__title')?.textContent?.trim() || '';
+    if (selectedLabel) selectedLabel.textContent = 'Выбрано: ' + title;
+  };
+
+  document.querySelectorAll('.looking-offer-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      open(btn.dataset.requestId, btn.dataset.query || '');
+    });
+  });
+
+  picker.querySelectorAll('[data-picker-close]').forEach((el) => {
+    el.addEventListener('click', close);
+  });
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => selectCard(card));
+  });
+
+  search?.addEventListener('input', () => {
+    const q = (search.value || '').trim().toLowerCase();
+    cards.forEach((card) => {
+      const title = card.dataset.title || '';
+      card.hidden = q ? !title.includes(q) : false;
+    });
+    updateCount();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (picker.hidden) return;
+    if (e.key === 'Escape') close();
+  });
+
+  form.addEventListener('submit', (e) => {
+    if (!hiddenId?.value) {
+      e.preventDefault();
+      if (selectedLabel) selectedLabel.textContent = 'Сначала выберите объявление';
+    }
+  });
+
+  updateCount();
+})();
+
+/* --- Корзина: автосохранение количества --- */
+(function initCartAutoSave() {
+  const form = document.getElementById('cart-form');
+  const checkoutBtn = document.getElementById('cart-checkout-btn');
+  const hint = document.getElementById('cart-save-hint');
+  if (!form) return;
+
+  let timer = null;
+  let saving = false;
+
+  const setHint = (text, ok) => {
+    if (!hint) return;
+    hint.textContent = text;
+    hint.classList.toggle('cart-save-hint--ok', !!ok);
+  };
+
+  const saveCart = async () => {
+    if (saving) return true;
+    saving = true;
+    setHint('Сохранение...', false);
+    const fd = new FormData(form);
+    document.querySelectorAll('.cart-qty-input').forEach((input) => {
+      if (input.name) fd.set(input.name, input.value);
+    });
+    try {
+      const res = await fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' });
+      saving = false;
+      if (res.ok || res.redirected) {
+        setHint('Количество сохранено', true);
+        return true;
+      }
+    } catch (e) {
+      saving = false;
+    }
+    setHint('Не удалось сохранить — нажмите «Обновить»', false);
+    return false;
+  };
+
+  document.querySelectorAll('.cart-qty-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      clearTimeout(timer);
+      timer = setTimeout(saveCart, 400);
+    });
+  });
+
+  checkoutBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const msg = checkoutBtn.dataset.confirm || 'Перейти к оформлению заказа?';
+    if (!window.confirm(msg)) return;
+    const ok = await saveCart();
+    if (ok) window.location.href = checkoutBtn.href;
   });
 })();

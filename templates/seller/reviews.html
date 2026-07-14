@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    {% include 'includes/cabinet_nav.html' with active='reviews' requests_badge=incoming_count %}
+
+    <h1 style="margin-top:20px;margin-bottom:8px">Отзывы</h1>
+    <p class="page-lead">
+        {% if rating_count %}
+            Средний рейтинг: <strong class="stars">★ {{ rating_avg|floatformat:1 }}</strong> · {{ rating_count }} отзыв{{ rating_count|pluralize:"ов" }}
+        {% else %}
+            Пока нет одобренных отзывов — они появятся после завершённых заказов
+        {% endif %}
+    </p>
+
+    {% if reviews %}
+        <div class="reviews-list">
+            {% for r in reviews %}
+                <article class="review-card">
+                    <div class="review-card__head">
+                        <span class="stars">★ {{ r.rating }}</span>
+                        <strong>{{ r.reviewer.first_name|default:r.reviewer.username }}</strong>
+                        <time class="review-card__date">{{ r.created_at|date:"d.m.Y" }}</time>
+                    </div>
+                    {% if r.listing and r.listing.slug %}
+                        <p class="review-card__listing">
+                            <a href="{% url 'listings:detail' r.listing.slug %}">{{ r.listing.title }}</a>
+                        </p>
+                    {% endif %}
+                    {% if r.text %}<p class="review-card__text">{{ r.text|linebreaks }}</p>{% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-hint">Отзывов пока нет</p>
+    {% endif %}
+</div>
+{% endblock %}

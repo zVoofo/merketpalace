@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=14">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=17">
 </head>
 <body>
 <header class="header">
@@ -40,8 +40,8 @@
                         <div class="nav-notify__list" id="notify-list">
                             {% for n in header_notifications %}
                                 <div class="nav-notify__row" data-notify-id="{{ n.pk }}">
-                                    <a href="{{ n.link|default:'#' }}" class="nav-notify__item{% if not n.is_read %} nav-notify__item--new{% endif %}">
-                                        <strong>{{ n.title }}</strong>
+                                    <a href="{% url 'accounts:notification_open' n.pk %}" class="nav-notify__item{% if not n.is_read %} nav-notify__item--new{% endif %}">
+                                        <strong>{% if n.ntype == 'order' %}📦 {% elif n.ntype == 'search_offer' %}🔔 {% elif n.ntype == 'message' %}💬 {% endif %}{{ n.title }}</strong>
                                         {% if n.body %}<span>{{ n.body }}</span>{% endif %}
                                         <time>{{ n.created_at|timesince }} назад</time>
                                     </a>
@@ -101,6 +101,6 @@
     <img src="" alt="" id="lightbox-img">
 </div>
 
-<script src="{% static 'js/app.js' %}?v=8"></script>
+<script src="{% static 'js/app.js' %}?v=12"></script>
 </body>
 </html>
