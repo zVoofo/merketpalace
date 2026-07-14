@@ -4,16 +4,25 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from orders.models import OrderItem
-from catalog.models import Category, Brand, SearchRequest
+from catalog.models import Category, Brand, SearchRequest, CarModel
 from .models import Listing, ModerationQueue, Review
 from .forms import ListingForm, ReviewForm, validate_media_files, MAX_REVIEW_MEDIA
 from .services import save_listing_media, save_review_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating, get_complementary_listings
 from .moderation import schedule_auto_moderation
 
 
+def listing_form_extras():
+    return {
+        'car_models_data': [
+            {'id': m.id, 'make_id': m.make_id, 'name': str(m)}
+            for m in CarModel.objects.select_related('make').order_by('make__name', 'name')
+        ],
+    }
+
+
 def listing_detail(request, slug):
     listing = get_object_or_404(
-        Listing.objects.select_related('category', 'brand', 'user').prefetch_related('images'),
+        Listing.objects.select_related('category', 'brand', 'user').prefetch_related('images', 'car_compat__make', 'car_compat__model'),
         slug=slug,
     )
     if listing.status != Listing.Status.ACTIVE:
@@ -65,6 +74,7 @@ def listing_create(request):
                 request.user.active_role = 'seller'
                 request.user.save(update_fields=['active_role'])
             listing.save()
+            form.save_car_compat(listing)
             save_listing_media(listing, media_files)
             ModerationQueue.objects.create(listing=listing, reason='Новое объявление')
             schedule_auto_moderation(listing.pk)
@@ -85,6 +95,7 @@ def listing_create(request):
         'form': form,
         'categories': Category.objects.filter(is_active=True),
         'brands': Brand.objects.filter(is_active=True),
+        **listing_form_extras(),
     })
 
 
@@ -108,6 +119,7 @@ def listing_edit(request, pk):
             if remove_ids:
                 listing.images.filter(pk__in=remove_ids).delete()
             listing = form.save()
+            form.save_car_compat(listing)
             if media_files:
                 save_listing_media(listing, media_files)
             remoderate_listing(listing)
@@ -125,6 +137,7 @@ def listing_edit(request, pk):
         'form': form,
         'listing': listing,
         'last_reject': last_reject,
+        **listing_form_extras(),
     })
 
 

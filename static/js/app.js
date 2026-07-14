@@ -988,3 +988,58 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (ok) window.location.href = checkoutBtn.href;
   });
 })();
+
+/* --- Форма объявления: наличие, гарантия, марка/модель авто --- */
+(function initListingForm() {
+  const form = document.getElementById('listing-form');
+  if (!form) return;
+
+  const availability = form.querySelectorAll('input[name="availability"]');
+  const quantityGroup = document.getElementById('listing-quantity-group');
+  const quantityInput = form.querySelector('#id_quantity');
+  const warrantyCheck = form.querySelector('#id_has_warranty');
+  const warrantyGroup = document.getElementById('warranty-text-group');
+  const makeSelect = form.querySelector('#id_car_make');
+  const modelSelect = form.querySelector('#id_car_model');
+  const modelsNode = document.getElementById('car-models-data');
+  const models = modelsNode ? JSON.parse(modelsNode.textContent || '[]') : [];
+
+  const syncAvailability = () => {
+    const selected = form.querySelector('input[name="availability"]:checked');
+    const preorder = selected && selected.value === 'preorder';
+    if (quantityGroup) quantityGroup.hidden = preorder;
+    if (quantityInput) {
+      quantityInput.required = !preorder;
+      if (preorder) quantityInput.value = '0';
+    }
+  };
+
+  const syncWarranty = () => {
+    if (!warrantyGroup || !warrantyCheck) return;
+    warrantyGroup.hidden = !warrantyCheck.checked;
+  };
+
+  const filterModels = () => {
+    if (!makeSelect || !modelSelect) return;
+    const makeId = Number(makeSelect.value);
+    const current = modelSelect.value;
+    Array.from(modelSelect.options).forEach((opt, idx) => {
+      if (idx === 0) {
+        opt.hidden = false;
+        return;
+      }
+      const model = models.find((m) => String(m.id) === opt.value);
+      const show = !makeId || (model && model.make_id === makeId);
+      opt.hidden = !show;
+      if (!show && opt.value === current) modelSelect.value = '';
+    });
+  };
+
+  availability.forEach((el) => el.addEventListener('change', syncAvailability));
+  warrantyCheck?.addEventListener('change', syncWarranty);
+  makeSelect?.addEventListener('change', filterModels);
+
+  syncAvailability();
+  syncWarranty();
+  filterModels();
+})();

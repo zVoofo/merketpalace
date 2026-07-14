@@ -41,17 +41,6 @@
         {% endif %}
     </div>
 
-    {% if user.active_role == 'seller' %}
-    <div class="profile-seller-links">
-        <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent">+ Объявление</a>
-        <a href="{% url 'seller:listings' %}" class="btn btn--outline btn--sm">Мои объявления</a>
-        <a href="{% url 'accounts:my_requests' %}" class="btn btn--outline btn--sm">
-            Мои заявки{% if incoming_count %} ({{ incoming_count }}){% endif %}
-        </a>
-        <a href="{% url 'seller:dashboard' %}" class="btn btn--outline btn--sm">Статистика</a>
-    </div>
-    {% endif %}
-
     <div class="profile-view" id="profile-view">
         <div class="profile-card profile-card--view">
             {% if user.avatar %}

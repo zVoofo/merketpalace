@@ -1,0 +1,73 @@
+{% load static %}
+
+<div class="listing-form">
+    <section class="form__section">
+        <h3 class="form__section-title">Основное</h3>
+        <div class="form__row form__row--2">
+            <div class="form__group">{{ form.type.label_tag }}{{ form.type }}{% if form.type.errors %}<div class="form__error">{{ form.type.errors.0 }}</div>{% endif %}</div>
+            <div class="form__group">{{ form.condition.label_tag }}{{ form.condition }}{% if form.condition.errors %}<div class="form__error">{{ form.condition.errors.0 }}</div>{% endif %}</div>
+        </div>
+        <div class="form__group">{{ form.title.label_tag }}{{ form.title }}{% if form.title.errors %}<div class="form__error">{{ form.title.errors.0 }}</div>{% endif %}</div>
+        <div class="form__row form__row--2">
+            <div class="form__group">{{ form.category.label_tag }}{{ form.category }}{% if form.category.errors %}<div class="form__error">{{ form.category.errors.0 }}</div>{% endif %}</div>
+            <div class="form__group">{{ form.brand.label_tag }}{{ form.brand }}{% if form.brand.errors %}<div class="form__error">{{ form.brand.errors.0 }}</div>{% endif %}</div>
+        </div>
+        <div class="form__group">{{ form.description.label_tag }}{{ form.description }}{% if form.description.errors %}<div class="form__error">{{ form.description.errors.0 }}</div>{% endif %}</div>
+        <div class="form__group">{{ form.sku.label_tag }}{{ form.sku }}{% if form.sku.errors %}<div class="form__error">{{ form.sku.errors.0 }}</div>{% endif %}</div>
+    </section>
+
+    <section class="form__section">
+        <h3 class="form__section-title">Цена и наличие</h3>
+        <div class="form__row form__row--2">
+            <div class="form__group">{{ form.price.label_tag }}{{ form.price }}{% if form.price.errors %}<div class="form__error">{{ form.price.errors.0 }}</div>{% endif %}</div>
+            <div class="form__group">
+                {{ form.old_price.label_tag }}{{ form.old_price }}
+                <p class="form__hint">Если указать — в каталоге появится фильтр «Со скидкой»</p>
+                {% if form.old_price.errors %}<div class="form__error">{{ form.old_price.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="form__group">
+            <span class="form__group-label">{{ form.availability.label }}</span>
+            <div class="form__radios" id="listing-availability">
+                {% for radio in form.availability %}
+                    <label class="form__radio">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+                {% endfor %}
+            </div>
+            {% if form.availability.errors %}<div class="form__error">{{ form.availability.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form__group" id="listing-quantity-group">
+            {{ form.quantity.label_tag }}{{ form.quantity }}
+            {% if form.quantity.errors %}<div class="form__error">{{ form.quantity.errors.0 }}</div>{% endif %}
+        </div>
+    </section>
+
+    <section class="form__section">
+        <h3 class="form__section-title">Гарантия и возврат</h3>
+        <div class="form__group form__group--check">
+            <label class="form__check">{{ form.has_warranty }}<span>{{ form.has_warranty.label }}</span></label>
+            <p class="form__hint">В каталоге можно отфильтровать товары «С гарантией»</p>
+        </div>
+        <div class="form__group" id="warranty-text-group">
+            {{ form.warranty_text.label_tag }}{{ form.warranty_text }}
+            {% if form.warranty_text.errors %}<div class="form__error">{{ form.warranty_text.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form__group">{{ form.return_policy.label_tag }}{{ form.return_policy }}{% if form.return_policy.errors %}<div class="form__error">{{ form.return_policy.errors.0 }}</div>{% endif %}</div>
+    </section>
+
+    <section class="form__section">
+        <h3 class="form__section-title">Совместимость с авто <span class="form__optional">— для запчастей</span></h3>
+        <p class="form__hint">Покупатели смогут найти товар через фильтр «Марка авто» в каталоге</p>
+        <div class="form__row form__row--2">
+            <div class="form__group">{{ form.car_make.label_tag }}{{ form.car_make }}{% if form.car_make.errors %}<div class="form__error">{{ form.car_make.errors.0 }}</div>{% endif %}</div>
+            <div class="form__group">{{ form.car_model.label_tag }}{{ form.car_model }}{% if form.car_model.errors %}<div class="form__error">{{ form.car_model.errors.0 }}</div>{% endif %}</div>
+        </div>
+        <div class="form__row form__row--2">
+            <div class="form__group">{{ form.year_from.label_tag }}{{ form.year_from }}{% if form.year_from.errors %}<div class="form__error">{{ form.year_from.errors.0 }}</div>{% endif %}</div>
+            <div class="form__group">{{ form.year_to.label_tag }}{{ form.year_to }}{% if form.year_to.errors %}<div class="form__error">{{ form.year_to.errors.0 }}</div>{% endif %}</div>
+        </div>
+    </section>
+</div>
+
+{% if car_models_data %}
+    {{ car_models_data|json_script:"car-models-data" }}
+{% endif %}

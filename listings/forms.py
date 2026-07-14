@@ -1,7 +1,8 @@
 from django import forms
 
+from catalog.models import CarMake, CarModel
 from catalog.validators import is_valid_listing_text
-from .models import Listing, Review
+from .models import Listing, Review, ListingCarCompat
 
 MAX_MEDIA = 10
 MIN_MEDIA = 1
@@ -15,6 +16,7 @@ LISTING_LABELS = {
     'title': 'Название',
     'category': 'Категория',
     'brand': 'Бренд',
+    'condition': 'Состояние',
     'description': 'Описание',
     'sku': 'Артикул (SKU)',
     'price': 'Цена, ₽',
@@ -27,10 +29,48 @@ LISTING_LABELS = {
 
 
 class ListingForm(forms.ModelForm):
+    AVAILABILITY_CHOICES = (
+        ('stock', 'В наличии'),
+        ('preorder', 'Под заказ'),
+    )
+
+    availability = forms.ChoiceField(
+        choices=AVAILABILITY_CHOICES,
+        label='Наличие',
+        widget=forms.RadioSelect,
+        initial='stock',
+    )
+    car_make = forms.ModelChoiceField(
+        queryset=CarMake.objects.order_by('name'),
+        required=False,
+        label='Марка авто',
+        empty_label='— не указана —',
+    )
+    car_model = forms.ModelChoiceField(
+        queryset=CarModel.objects.select_related('make').order_by('make__name', 'name'),
+        required=False,
+        label='Модель авто',
+        empty_label='— любая модель —',
+    )
+    year_from = forms.IntegerField(
+        required=False,
+        min_value=1980,
+        max_value=2030,
+        label='Год выпуска от',
+        widget=forms.NumberInput(attrs={'placeholder': '2015'}),
+    )
+    year_to = forms.IntegerField(
+        required=False,
+        min_value=1980,
+        max_value=2030,
+        label='Год выпуска до',
+        widget=forms.NumberInput(attrs={'placeholder': '2020'}),
+    )
+
     class Meta:
         model = Listing
         fields = (
-            'type', 'title', 'category', 'brand', 'description',
+            'type', 'title', 'category', 'brand', 'condition', 'description',
             'sku', 'price', 'old_price', 'quantity',
             'has_warranty', 'warranty_text', 'return_policy',
         )
@@ -41,6 +81,9 @@ class ListingForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'placeholder': 'Например: Тормозные колодки BMW X5'}),
             'brand': forms.Select(),
             'category': forms.Select(),
+            'condition': forms.Select(),
+            'old_price': forms.NumberInput(attrs={'placeholder': 'Для отображения скидки в каталоге'}),
+            'warranty_text': forms.TextInput(attrs={'placeholder': 'Например: 12 месяцев от производителя'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -51,6 +94,43 @@ class ListingForm(forms.ModelForm):
         self.fields['sku'].required = False
         self.fields['warranty_text'].required = False
         self.fields['return_policy'].required = False
+        self.fields['quantity'].widget.attrs.setdefault('min', 0)
+
+        if self.instance and self.instance.pk:
+            compat = self.instance.car_compat.select_related('make', 'model').first()
+            if compat:
+                self.fields['car_make'].initial = compat.make_id
+                self.fields['car_model'].initial = compat.model_id
+                self.fields['year_from'].initial = compat.year_from
+                self.fields['year_to'].initial = compat.year_to
+            self.fields['availability'].initial = (
+                'preorder' if self.instance.quantity == 0 else 'stock'
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        availability = cleaned.get('availability')
+        quantity = cleaned.get('quantity')
+        year_from = cleaned.get('year_from')
+        year_to = cleaned.get('year_to')
+
+        if availability == 'preorder':
+            cleaned['quantity'] = 0
+        elif quantity is None or quantity <= 0:
+            self.add_error('quantity', 'Укажите количество или выберите «Под заказ»')
+
+        if year_from and year_to and year_from > year_to:
+            self.add_error('year_to', 'Год «до» не может быть меньше года «от»')
+
+        car_make = cleaned.get('car_make')
+        car_model = cleaned.get('car_model')
+        if car_model and car_make and car_model.make_id != car_make.pk:
+            self.add_error('car_model', 'Модель не соответствует выбранной марке')
+
+        if cleaned.get('has_warranty') and not (cleaned.get('warranty_text') or '').strip():
+            self.add_error('warranty_text', 'Укажите условия гарантии')
+
+        return cleaned
 
     def clean_title(self):
         title = (self.cleaned_data.get('title') or '').strip()
@@ -72,6 +152,19 @@ class ListingForm(forms.ModelForm):
         if price is not None and price <= 0:
             raise forms.ValidationError('Цена должна быть больше 0')
         return price
+
+    def save_car_compat(self, listing):
+        listing.car_compat.all().delete()
+        make = self.cleaned_data.get('car_make')
+        if not make:
+            return
+        ListingCarCompat.objects.create(
+            listing=listing,
+            make=make,
+            model=self.cleaned_data.get('car_model'),
+            year_from=self.cleaned_data.get('year_from'),
+            year_to=self.cleaned_data.get('year_to'),
+        )
 
 
 def detect_media_type(uploaded_file) -> str:
