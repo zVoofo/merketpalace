@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from .forms import RegisterForm, LoginForm, ProfileForm, OrganizationForm, VerifyCodeForm
 from .verification import send_email_verification, verify_email_code, send_phone_verification, verify_phone_code
 from .wallet_forms import TopUpForm
@@ -282,3 +284,11 @@ def panel_verify_user(request, pk):
     user.save()
     Organization.objects.filter(user=user).update(is_verified=True)
     return redirect('panel:users')
+
+
+@login_required
+@require_POST
+def notifications_read(request):
+    from .models import Notification
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'ok': True})

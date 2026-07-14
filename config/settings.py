@@ -123,6 +123,33 @@ STORAGES = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800  # 50 MB
+
+# --- Хранение файлов (фото, видео, чат) ---
+# По умолчанию: локальная папка media/ (на Render работает, пока сервер не «уснул»)
+# Для постоянного хранения: S3-совместимое облако (Яндекс, Selectel и т.д.)
+_S3_BUCKET = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+if _S3_BUCKET:
+    INSTALLED_APPS += ['storages']
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+    }
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+    AWS_STORAGE_BUCKET_NAME = _S3_BUCKET
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'ru-central1')
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '') or None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    _custom_domain = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')
+    if _custom_domain:
+        AWS_S3_CUSTOM_DOMAIN = _custom_domain
+        MEDIA_URL = f'https://{_custom_domain}/'
+    elif AWS_S3_ENDPOINT_URL and 'yandex' in AWS_S3_ENDPOINT_URL:
+        AWS_S3_CUSTOM_DOMAIN = f'{_S3_BUCKET}.storage.yandexcloud.net'
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

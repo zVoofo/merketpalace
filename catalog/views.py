@@ -4,10 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Max, Min
 from django.conf import settings
+from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_POST
 from .models import Category, Brand, CarMake, SearchQuery, SearchRequest
 from .validators import is_valid_search_query
-from .search_images import get_cached_search_image
+from .search_images import get_cached_search_image, get_preview_bytes
 from .external import get_external_offers
 from accounts.notifications import notify
 
@@ -53,9 +54,8 @@ def catalog_index(request):
             Q(sku__icontains=q)
         )
         preview = get_cached_search_image(q)
-        preview_image = preview.get('url')
         preview_source = preview.get('source')
-        external_offers = get_external_offers(q, preview_url=preview_image)
+        external_offers = get_external_offers(q)
     elif q and not search_valid:
         qs = qs.none()
 
@@ -114,6 +114,7 @@ def catalog_index(request):
         'search_invalid': bool(q) and not search_valid,
         'search_error': search_error,
         'preview_image': preview_image,
+        'show_search_preview': bool(q) and search_valid,
         'preview_source': preview_source,
         'external_offers': external_offers,
         'search_query': q,
@@ -186,3 +187,17 @@ def respond_to_search(request, pk):
         )
     messages.success(request, f'Вы предложили «{listing.title}» на заявку')
     return redirect('catalog:looking')
+
+
+def search_preview(request):
+    """Картинка-превью поиска — отдаётся напрямую, без /media/."""
+    q = request.GET.get('q', '').strip()
+    valid, _ = is_valid_search_query(q)
+    if not valid:
+        raise Http404
+    data, _ = get_preview_bytes(q)
+    if not data:
+        raise Http404
+    response = HttpResponse(data, content_type='image/jpeg')
+    response['Cache-Control'] = 'public, max-age=3600'
+    return response

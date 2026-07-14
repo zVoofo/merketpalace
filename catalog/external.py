@@ -52,7 +52,7 @@ def _wikipedia_image(query: str) -> str | None:
     return None
 
 
-def get_external_offers(query: str, preview_url: str | None = None) -> list[ExternalOffer]:
+def get_external_offers(query: str) -> list[ExternalOffer]:
     q = query.strip()
     encoded = urllib.parse.quote(q)
     sources = [
@@ -63,6 +63,6 @@ def get_external_offers(query: str, preview_url: str | None = None) -> list[Exte
         ('Auto.ru', f'https://auto.ru/parts/all/?query={encoded}'),
     ]
     return [
-        ExternalOffer(source=name, title=f'{q} — на {name}', url=url, price=None, image=preview_url)
+        ExternalOffer(source=name, title=f'{q} — на {name}', url=url, price=None, image=None)
         for name, url in sources
     ]

@@ -1,66 +1,64 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block content %}
-<div class="container">
-    {% if listing %}
-        <p style="margin-bottom:12px"><a href="{% url 'listings:detail' listing.slug %}">← {{ listing.title }}</a></p>
-    {% else %}
-        <p style="margin-bottom:12px"><a href="{% url 'chat:index' %}">← Все сообщения</a> · <strong>Поддержка</strong></p>
-    {% endif %}
-    <div class="chat-box" id="chat-box" data-csrf="{{ csrf_token }}">
-        <div class="chat-messages" id="chat-messages">
-            {% for m in chat_messages %}
-                {% if not m.is_deleted %}
-                <div class="chat-msg {% if m.sender == user %}chat-msg--own{% endif %}"
-                     data-msg-id="{{ m.pk }}"
-                     data-own="{% if m.sender == user %}1{% else %}0{% endif %}"
-                     data-has-attachment="{% if m.attachment %}1{% else %}0{% endif %}">
-                    <div class="chat-msg__bubble">
-                        {% if m.attachment %}
-                            {% if m.attachment_type == 'image' %}
-                                <a href="{{ m.attachment.url }}" target="_blank" rel="noopener">
-                                    <img src="{{ m.attachment.url }}" alt="" class="chat-attach-img" onerror="this.parentElement.innerHTML='📷 Фото (обновите страницу)'">
-                                </a>
-                            {% elif m.attachment_type == 'video' %}
-                                <video src="{{ m.attachment.url }}" controls class="chat-attach-video"></video>
-                            {% else %}
-                                <a href="{{ m.attachment.url }}" target="_blank" rel="noopener" download class="chat-attach-file">
-                                    <span class="chat-attach-file__icon">📎</span>
-                                    <span>{{ m.attachment_name|default:"Файл" }}</span>
-                                </a>
-                            {% endif %}
-                            <span class="chat-attach-label">✓ Файл отправлен</span>
-                        {% endif %}
-                        {% if m.body %}<span class="chat-msg__text">{{ m.body }}</span>{% endif %}
-                        {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
-                    </div>
-                    {% if m.sender == user and not m.attachment %}
-                        <button type="button" class="chat-msg__menu-btn" data-msg-id="{{ m.pk }}" title="Действия">⋯</button>
-                    {% endif %}
-                </div>
-                {% else %}
-                <div class="chat-msg chat-msg--deleted"><div class="chat-msg__bubble">Сообщение удалено</div></div>
-                {% endif %}
-            {% endfor %}
-        </div>
-        <form method="POST" class="chat-input" id="chat-form" enctype="multipart/form-data">
-            {% csrf_token %}
-            <label class="chat-attach-btn" title="Прикрепить файл">
-                📎
-                <input type="file" name="attachment" id="chat-attachment" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip" hidden>
-            </label>
-            <div class="chat-input__main">
-                <input type="text" name="body" id="chat-body" placeholder="Сообщение..." autocomplete="off">
-                <span class="chat-input__file" id="chat-file-name" hidden></span>
-            </div>
-            <button type="submit" class="btn btn--sm">Отправить</button>
-        </form>
-        <p class="chat-hint">ПКМ или кнопка ⋯ — редактировать / удалить своё сообщение</p>
-    </div>
-    <div id="chat-context-menu" class="chat-context-menu" hidden>
-        <button type="button" data-action="edit">✏️ Редактировать</button>
-        <button type="button" data-action="delete">🗑 Удалить</button>
-    </div>
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    {% if listing %}
+        <p style="margin-bottom:12px"><a href="{% url 'listings:detail' listing.slug %}">← {{ listing.title }}</a></p>
+    {% else %}
+        <p style="margin-bottom:12px"><a href="{% url 'chat:index' %}">← Все сообщения</a> · <strong>Поддержка</strong></p>
+    {% endif %}
+    <div class="chat-box" id="chat-box" data-csrf="{{ csrf_token }}">
+        <div class="chat-messages" id="chat-messages">
+            {% for m in chat_messages %}
+                {% if not m.is_deleted %}
+                <div class="chat-msg {% if m.sender == user %}chat-msg--own{% endif %}"
+                     data-msg-id="{{ m.pk }}"
+                     data-own="{% if m.sender == user %}1{% else %}0{% endif %}"
+                     data-has-attachment="{% if m.attachment %}1{% else %}0{% endif %}">
+                    <div class="chat-msg__bubble">
+                        {% if m.attachment %}
+                            {% if m.attachment_type == 'image' %}
+                                <img src="{{ m.attachment.url }}" alt="" class="chat-attach-img chat-lightbox-trigger" role="button" tabindex="0" title="Нажмите, чтобы увеличить">
+                            {% elif m.attachment_type == 'video' %}
+                                <video src="{{ m.attachment.url }}" controls class="chat-attach-video" playsinline></video>
+                            {% else %}
+                                <a href="{{ m.attachment.url }}" target="_blank" rel="noopener" class="chat-attach-file">
+                                    <span class="chat-attach-file__icon">📎</span>
+                                    <span>{{ m.attachment_name|default:"Файл" }}</span>
+                                </a>
+                            {% endif %}
+                            <span class="chat-attach-label">✓ Вложение загружено</span>
+                        {% endif %}
+                        {% if m.body %}<span class="chat-msg__text">{{ m.body }}</span>{% endif %}
+                        {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
+                    </div>
+                    {% if m.sender == user and not m.attachment %}
+                        <button type="button" class="chat-msg__menu-btn" data-msg-id="{{ m.pk }}" title="Действия">⋯</button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="chat-msg chat-msg--deleted"><div class="chat-msg__bubble">Сообщение удалено</div></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <form method="POST" class="chat-input" id="chat-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label class="chat-attach-btn" title="Прикрепить файл">
+                📎
+                <input type="file" name="attachment" id="chat-attachment" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip" hidden>
+            </label>
+            <div class="chat-input__main">
+                <input type="text" name="body" id="chat-body" placeholder="Сообщение..." autocomplete="off">
+                <span class="chat-input__file" id="chat-file-name" hidden></span>
+            </div>
+            <button type="submit" class="btn btn--sm">Отправить</button>
+        </form>
+        <p class="chat-hint">ПКМ или кнопка ⋯ — редактировать / удалить своё сообщение</p>
+    </div>
+    <div id="chat-context-menu" class="chat-context-menu" hidden>
+        <button type="button" data-action="edit">✏️ Редактировать</button>
+        <button type="button" data-action="delete">🗑 Удалить</button>
+    </div>
+</div>
+{% endblock %}

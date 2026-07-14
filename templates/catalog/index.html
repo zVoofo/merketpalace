@@ -36,13 +36,11 @@
             <button type="submit" class="btn" style="width:100%">Применить</button>
         </form>
 
-        {% if preview_image and search_query %}
+        {% if show_search_preview %}
         <div class="search-preview" style="margin-top:20px">
-            <h3 style="font-size:.95rem;margin-bottom:8px">
-                {% if preview_source == 'web' %}Фото товара{% elif preview_source == 'generated' %}Пример товара{% else %}Превью{% endif %}
-            </h3>
+            <h3 style="font-size:.95rem;margin-bottom:8px">Пример товара</h3>
             <div class="search-preview__frame">
-                <img src="{{ preview_image }}" alt="{{ search_query }}" width="400" height="400" decoding="async">
+                <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="{{ search_query }}" width="400" height="400" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
             </div>
             <p style="font-size:.8rem;color:var(--muted);margin-top:6px">«{{ search_query }}»</p>
         </div>
@@ -59,9 +57,9 @@
         {% elif zero_result %}
             <div class="zero-result">
                 <h2>Товар не найден на MarketPlace</h2>
-                {% if preview_image %}
+                {% if show_search_preview %}
                     <div class="search-preview__frame search-preview__frame--center">
-                        <img src="{{ preview_image }}" alt="{{ search_query }}" width="200" height="200" decoding="async">
+                        <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="{{ search_query }}" width="200" height="200" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                     </div>
                 {% endif %}
                 <form method="POST" action="{% url 'catalog:search_request' %}" style="max-width:400px;margin:20px auto">
@@ -77,11 +75,7 @@
             <div class="grid">
                 {% for offer in external_offers %}
                     <a href="{{ offer.url }}" target="_blank" rel="noopener" class="card">
-                        {% if offer.image %}
-                            <img class="card__img" src="{{ offer.image }}" alt="{{ offer.source }}" loading="lazy" decoding="async">
-                        {% else %}
-                            <img class="card__img" src="{% static 'img/no-photo.svg' %}" alt="">
-                        {% endif %}
+                        <img class="card__img" src="{% static 'img/offer-placeholder.svg' %}" alt="{{ offer.source }}" loading="lazy">
                         <div class="card__body">
                             <div class="card__title">{{ offer.title }}</div>
                             <span class="card__badge">Открыть на {{ offer.source }} →</span>

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static humanize %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -24,7 +24,29 @@
                 <a href="{% url 'accounts:wallet' %}">💰 {{ user.wallet_balance|floatformat:0 }}₽</a>
                 <a href="{% url 'cart' %}">🛒 {% if cart_count %}({{ cart_count }}){% endif %}</a>
                 <a href="{% url 'chat:index' %}">💬{% if chat_unread_count %} <span class="nav-badge">{{ chat_unread_count }}</span>{% endif %}</a>
-                {% if notification_count %}<a href="{% url 'accounts:profile' %}#looking-responses" title="Уведомления">🔔 <span class="nav-badge">{{ notification_count }}</span></a>{% endif %}
+
+                <div class="nav-notify" id="nav-notify">
+                    <button type="button" class="nav-notify__bell" id="notify-bell" aria-label="Уведомления">
+                        🔔
+                        {% if notification_count %}<span class="nav-badge">{{ notification_count }}</span>{% endif %}
+                    </button>
+                    <div class="nav-notify__dropdown" id="notify-dropdown" hidden>
+                        <div class="nav-notify__head">Уведомления</div>
+                        <div class="nav-notify__list">
+                            {% for n in header_notifications %}
+                                <a href="{{ n.link|default:'#' }}" class="nav-notify__item{% if not n.is_read %} nav-notify__item--new{% endif %}">
+                                    <strong>{{ n.title }}</strong>
+                                    {% if n.body %}<span>{{ n.body }}</span>{% endif %}
+                                    <time>{{ n.created_at|timesince }} назад</time>
+                                </a>
+                            {% empty %}
+                                <p class="nav-notify__empty">Нет уведомлений</p>
+                            {% endfor %}
+                        </div>
+                        <a href="{% url 'accounts:profile' %}" class="nav-notify__footer">Все уведомления →</a>
+                    </div>
+                </div>
+
                 <a href="{% url 'orders:list' %}">Заказы</a>
                 {% if user.is_staff %}
                     <a href="{% url 'panel:dashboard' %}">Панель</a>
@@ -66,6 +88,12 @@
         </div>
     </div>
 </footer>
+
+<div id="img-lightbox" class="img-lightbox" hidden>
+    <button type="button" class="img-lightbox__close" id="lightbox-close">×</button>
+    <img src="" alt="" id="lightbox-img">
+</div>
+
 <script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>

@@ -1,6 +1,3 @@
-"""
-Стабильное превью для поиска: скачиваем фото один раз или генерируем локально.
-"""
 import hashlib
 import io
 import os
@@ -12,16 +9,12 @@ from django.conf import settings
 
 from .external import _duckduckgo_image, _wikipedia_image
 
-
 CACHE_DIR = Path(settings.MEDIA_ROOT) / 'search_previews'
+PLACEHOLDER_STATIC = f'{settings.STATIC_URL}img/no-photo.svg'
 
 
 def _query_hash(query: str) -> str:
     return hashlib.md5(query.strip().lower().encode('utf-8')).hexdigest()
-
-
-def _media_url(filename: str) -> str:
-    return f'{settings.MEDIA_URL}search_previews/{filename}'
 
 
 def _download_bytes(url: str) -> bytes | None:
@@ -47,6 +40,7 @@ def _pick_font(size: int):
         'C:/Windows/Fonts/arial.ttf',
         'C:/Windows/Fonts/segoeui.ttf',
         '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
     ):
         if os.path.exists(path):
             try:
@@ -79,41 +73,52 @@ def _generate_product_card(query: str) -> bytes:
 
     font_title = _pick_font(15)
     font_small = _pick_font(12)
-    font_icon = _pick_font(48)
-    draw.text((200, 145), '📦', font=font_icon, anchor='mm', fill=(100, 116, 139))
+    draw.text((200, 155), 'MP', font=font_title, anchor='mm', fill=(100, 116, 139))
 
     y_text = 220
     for line in textwrap.wrap(query.strip(), width=22)[:4]:
         draw.text((200, y_text), line, font=font_title, anchor='mm', fill=(30, 41, 59))
         y_text += 22
 
-    draw.text((200, 375), 'Пример товара · MarketPlace', font=font_small, anchor='mm', fill=(255, 255, 255))
+    draw.text((200, 375), 'Пример товара', font=font_small, anchor='mm', fill=(255, 255, 255))
 
     buf = io.BytesIO()
     img.save(buf, format='JPEG', quality=88)
     return buf.getvalue()
 
 
-def get_cached_search_image(query: str) -> dict:
+def get_preview_bytes(query: str) -> tuple[bytes, str]:
+    """Возвращает (jpeg_bytes, source)."""
     if not query or len(query.strip()) < 3:
-        return {'url': None, 'source': None}
+        return b'', 'none'
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    file_hash = _query_hash(query)
-    filename = f'{file_hash}.jpg'
+    filename = f'{_query_hash(query)}.jpg'
     filepath = CACHE_DIR / filename
-    media_url = _media_url(filename)
 
     if filepath.exists() and filepath.stat().st_size > 500:
-        return {'url': media_url, 'source': 'cache'}
+        return filepath.read_bytes(), 'cache'
 
     for remote_fn, source in ((_wikipedia_image, 'web'), (_duckduckgo_image, 'web')):
         remote_url = remote_fn(query)
         if remote_url:
             data = _download_bytes(remote_url)
             if data:
-                filepath.write_bytes(data)
-                return {'url': media_url, 'source': source}
+                try:
+                    filepath.write_bytes(data)
+                except OSError:
+                    pass
+                return data, source
 
-    filepath.write_bytes(_generate_product_card(query))
-    return {'url': media_url, 'source': 'generated'}
+    data = _generate_product_card(query)
+    try:
+        filepath.write_bytes(data)
+    except OSError:
+        pass
+    return data, 'generated'
+
+
+def get_cached_search_image(query: str) -> dict:
+    if not query or len(query.strip()) < 3:
+        return {'url': None, 'source': None, 'use_api': False}
+    return {'url': None, 'source': 'api', 'use_api': True}

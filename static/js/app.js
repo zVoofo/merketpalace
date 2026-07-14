@@ -257,3 +257,69 @@ document.querySelectorAll('img[data-fallback]').forEach((img) => {
     img.src = img.dataset.fallback;
   });
 });
+
+/* --- Уведомления: выпадающий список (как ВК) --- */
+(function initNotifyDropdown() {
+  const wrap = document.getElementById('nav-notify');
+  const bell = document.getElementById('notify-bell');
+  const dropdown = document.getElementById('notify-dropdown');
+  if (!wrap || !bell || !dropdown) return;
+
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+    || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+  const close = () => {
+    dropdown.setAttribute('hidden', '');
+    dropdown.style.display = 'none';
+  };
+
+  const open = async () => {
+    dropdown.removeAttribute('hidden');
+    dropdown.style.display = 'flex';
+    if (csrf) {
+      const fd = new FormData();
+      fd.append('csrfmiddlewaretoken', csrf);
+      fetch('/accounts/notifications/read/', { method: 'POST', body: fd }).catch(() => {});
+      wrap.querySelectorAll('.nav-badge').forEach((b) => b.remove());
+      dropdown.querySelectorAll('.nav-notify__item--new').forEach((el) => el.classList.remove('nav-notify__item--new'));
+    }
+  };
+
+  bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (dropdown.hasAttribute('hidden')) open();
+    else close();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) close();
+  });
+})();
+
+/* --- Лайтбокс: смотреть фото в чате без скачивания --- */
+(function initLightbox() {
+  const lb = document.getElementById('img-lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  const lbClose = document.getElementById('lightbox-close');
+  if (!lb || !lbImg) return;
+
+  const show = (src) => {
+    lbImg.src = src;
+    lb.removeAttribute('hidden');
+    lb.style.display = 'flex';
+  };
+  const hide = () => {
+    lb.setAttribute('hidden', '');
+    lb.style.display = 'none';
+    lbImg.src = '';
+  };
+
+  document.querySelectorAll('.chat-lightbox-trigger').forEach((img) => {
+    img.addEventListener('click', () => show(img.src));
+    img.addEventListener('keydown', (e) => { if (e.key === 'Enter') show(img.src); });
+  });
+
+  lbClose?.addEventListener('click', hide);
+  lb.addEventListener('click', (e) => { if (e.target === lb) hide(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+})();

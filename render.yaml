@@ -12,7 +12,7 @@ services:
     name: marketplace
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate --no-input && python manage.py seed
+    buildCommand: pip install -r requirements.txt && mkdir -p media/chat media/listings media/search_previews media/avatars && python manage.py collectstatic --no-input && python manage.py migrate --no-input && python manage.py seed
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120
     healthCheckPath: /
     envVars:
