@@ -148,6 +148,35 @@ def search_request_view(request):
     return redirect('catalog:looking')
 
 
+def _listing_thumb_url(listing) -> str:
+    from django.templatetags.static import static
+    img = listing.images.filter(media_type='image').first()
+    if img and img.file:
+        try:
+            return img.file.url
+        except Exception:
+            pass
+    return static('img/no-photo.svg')
+
+
+def _rank_listings_for_query(listings, query: str):
+    """Поднять вверх объявления, похожие на текст заявки."""
+    q = (query or '').strip().lower()
+    words = [w for w in q.replace('—', ' ').replace(',', ' ').split() if len(w) >= 3]
+
+    def score(listing):
+        title = listing.title.lower()
+        s = 0
+        if q and q in title:
+            s += 10
+        for w in words:
+            if w in title:
+                s += 3
+        return s
+
+    return sorted(listings, key=score, reverse=True)
+
+
 def looking_board(request):
     """Публичная доска — заявки других покупателей (без своих)."""
     requests_qs = SearchRequest.objects.filter(
@@ -163,10 +192,24 @@ def looking_board(request):
             user=request.user, status=Listing.Status.ACTIVE,
         ).prefetch_related('images').order_by('-updated_at'))
 
+    seller_listings_payload = [
+        {
+            'id': l.id,
+            'title': l.title,
+            'slug': l.slug,
+            'price': int(l.price),
+            'quantity': l.quantity,
+            'image': _listing_thumb_url(l),
+        }
+        for l in seller_listings
+    ]
+
     return render(request, 'catalog/looking.html', {
         'title': 'Заявки покупателей',
         'search_requests': requests_qs,
         'seller_listings': seller_listings,
+        'seller_listings_count': len(seller_listings),
+        'seller_listings_payload': seller_listings_payload,
     })
 
 

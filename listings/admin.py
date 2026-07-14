@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Listing, ListingImage, ListingCarCompat, Review, ModerationQueue
+from .models import Listing, ListingImage, ListingCarCompat, Review, ReviewMedia, ModerationQueue
 
 
 class ListingImageInline(admin.TabularInline):
@@ -16,9 +16,15 @@ class ListingAdmin(admin.ModelAdmin):
     inlines = [ListingImageInline]
 
 
+class ReviewMediaInline(admin.TabularInline):
+    model = ReviewMedia
+    extra = 0
+
+
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ('listing', 'reviewer', 'rating', 'status')
+    inlines = [ReviewMediaInline]
 
 
 @admin.register(ModerationQueue)

@@ -71,7 +71,7 @@
         <section class="order-review">
             <h2 class="section-title">Отзыв продавцу</h2>
             {% if review_form and listing %}
-                <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" data-confirm="Отправить отзыв продавцу?">
+                <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" id="review-form" enctype="multipart/form-data" data-confirm="Отправить отзыв продавцу?">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'orders:detail' order.pk %}">
                     {% for field in review_form %}
@@ -80,6 +80,7 @@
                             {{ field }}
                         </div>
                     {% endfor %}
+                    {% include 'includes/review_media_uploader.html' %}
                     <button type="submit" class="btn">Оставить отзыв</button>
                 </form>
             {% elif review_block_reason %}

@@ -74,7 +74,7 @@ document.getElementById('burger')?.addEventListener('click', () => {
   let existingCount = root.querySelectorAll('.media-uploader__item.is-existing').length
     || parseInt(root.dataset.existing, 10) || 0;
   const countEl = document.getElementById('media-uploader-count');
-  const form = document.getElementById('listing-form');
+  const form = root.closest('form') || document.getElementById('listing-form');
 
   const countNewFiles = () => grid.querySelectorAll('.media-uploader__item.is-done:not(.is-existing)').length;
 
@@ -190,7 +190,7 @@ document.getElementById('burger')?.addEventListener('click', () => {
 
   form?.addEventListener('submit', (e) => {
     const total = existingCount + countNewFiles();
-    if (total < min) {
+    if (min > 0 && total < min) {
       e.preventDefault();
       alert(`Добавьте хотя бы ${min} фото или видео`);
     }
@@ -564,6 +564,175 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (!gallery.matches(':hover') && document.activeElement !== document.body) return;
     if (e.key === 'ArrowLeft') show(idx - 1);
     if (e.key === 'ArrowRight') show(idx + 1);
+  });
+})();
+
+/* --- Заявки покупателей: выбор объявления --- */
+(function initLookingBoard() {
+  const dataEl = document.getElementById('seller-listings-data');
+  if (!dataEl) return;
+
+  let listings = [];
+  try {
+    listings = JSON.parse(dataEl.textContent);
+  } catch (e) {
+    return;
+  }
+  if (!listings.length) return;
+
+  const scoreListing = (title, query) => {
+    const t = (title || '').toLowerCase();
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return 0;
+    let s = 0;
+    if (t.includes(q)) s += 10;
+    q.replace(/[,—]/g, ' ').split(/\s+/).forEach((w) => {
+      if (w.length >= 3 && t.includes(w)) s += 3;
+    });
+    return s;
+  };
+
+  const formatPrice = (n) => `${Number(n).toLocaleString('ru-RU')} ₽`;
+
+  const buildRows = (container, query) => {
+    const sorted = [...listings].sort(
+      (a, b) => scoreListing(b.title, query) - scoreListing(a.title, query),
+    );
+    container.innerHTML = '';
+    sorted.forEach((item) => {
+      const match = scoreListing(item.title, query) > 0;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'offer-row' + (match ? ' is-match' : '');
+      btn.dataset.id = String(item.id);
+      btn.dataset.title = (item.title || '').toLowerCase();
+
+      const img = document.createElement('img');
+      img.src = item.image;
+      img.alt = '';
+      img.className = 'offer-row__thumb';
+      img.width = 56;
+      img.height = 56;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+
+      const info = document.createElement('span');
+      info.className = 'offer-row__info';
+
+      const title = document.createElement('span');
+      title.className = 'offer-row__title';
+      title.textContent = item.title;
+
+      const meta = document.createElement('span');
+      meta.className = 'offer-row__meta';
+
+      const price = document.createElement('span');
+      price.className = 'offer-row__price';
+      price.textContent = formatPrice(item.price);
+
+      const stock = document.createElement('span');
+      stock.textContent = `В наличии: ${item.quantity} шт.`;
+
+      meta.append(price, stock);
+      info.append(title, meta);
+
+      const badge = document.createElement('span');
+      badge.className = 'offer-row__badge';
+      badge.setAttribute('aria-hidden', 'true');
+
+      btn.append(img, info, badge);
+      container.appendChild(btn);
+    });
+    return container.querySelectorAll('.offer-row');
+  };
+
+  let openCard = null;
+
+  const closePanel = (card) => {
+    if (!card) return;
+    card.classList.remove('is-open');
+    card.querySelector('.looking-picker')?.setAttribute('hidden', '');
+    if (openCard === card) openCard = null;
+  };
+
+  const wirePanel = (card) => {
+    const picker = card.querySelector('.looking-picker');
+    const list = picker?.querySelector('.looking-picker__list');
+    const search = picker?.querySelector('.looking-picker__search');
+    const countEl = picker?.querySelector('.looking-picker__count');
+    const form = picker?.querySelector('.looking-picker__footer');
+    const hiddenId = form?.querySelector('[name=listing_id]');
+    const selectedLabel = picker?.querySelector('.looking-picker__selected');
+    const submitBtn = form?.querySelector('[type=submit]');
+    const query = card.dataset.query || '';
+    if (!picker || !list || !form) return;
+
+    let rows = buildRows(list, query);
+    let selected = null;
+
+    const updateCount = () => {
+      const visible = [...rows].filter((r) => !r.hidden).length;
+      if (countEl) countEl.textContent = visible ? `${visible} из ${listings.length}` : 'Ничего не найдено';
+    };
+
+    const selectRow = (row) => {
+      selected = row;
+      rows.forEach((r) => r.classList.toggle('is-selected', r === row));
+      const id = row.dataset.id || '';
+      if (hiddenId) hiddenId.value = id;
+      if (submitBtn) submitBtn.disabled = !id;
+      const title = row.querySelector('.offer-row__title')?.textContent?.trim() || '';
+      const price = row.querySelector('.offer-row__price')?.textContent?.trim() || '';
+      if (selectedLabel) {
+        selectedLabel.textContent = title ? `${title} · ${price}` : 'Выберите объявление';
+      }
+    };
+
+    list.addEventListener('click', (e) => {
+      const row = e.target.closest('.offer-row');
+      if (!row || row.hidden) return;
+      selectRow(row);
+    });
+
+    search?.addEventListener('input', () => {
+      const q = (search.value || '').trim().toLowerCase();
+      rows.forEach((row) => {
+        const title = row.dataset.title || '';
+        row.hidden = q ? !title.includes(q) : false;
+      });
+      updateCount();
+    });
+
+    picker.querySelector('[data-offer-close]')?.addEventListener('click', () => closePanel(card));
+    updateCount();
+  };
+
+  document.querySelectorAll('.looking-request').forEach(wirePanel);
+
+  document.querySelectorAll('[data-offer-open]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.looking-request');
+      const picker = card?.querySelector('.looking-picker');
+      if (!card || !picker) return;
+
+      if (openCard && openCard !== card) closePanel(openCard);
+
+      const isOpen = !picker.hidden;
+      if (isOpen) {
+        closePanel(card);
+        return;
+      }
+
+      card.classList.add('is-open');
+      picker.removeAttribute('hidden');
+      openCard = card;
+      picker.querySelector('.looking-picker__search')?.focus();
+      picker.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && openCard) closePanel(openCard);
   });
 })();
 

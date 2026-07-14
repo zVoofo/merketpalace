@@ -1,6 +1,6 @@
 from django.db.models import Q, Count, Max
 from orders.models import Order, OrderItem
-from .models import Listing, ListingImage, ModerationQueue, Review
+from .models import Listing, ListingImage, ModerationQueue, Review, ReviewMedia
 
 
 COMPLETED_STATUSES = (
@@ -30,6 +30,17 @@ def save_listing_media(listing, files):
             file=f,
             media_type=detect_media_type(f),
             sort_order=start_order + i,
+        )
+
+
+def save_review_media(review, files):
+    for i, f in enumerate(files):
+        from .forms import detect_media_type
+        ReviewMedia.objects.create(
+            review=review,
+            file=f,
+            media_type=detect_media_type(f),
+            sort_order=i,
         )
 
 

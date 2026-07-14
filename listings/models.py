@@ -123,6 +123,20 @@ class Review(models.Model):
         ordering = ['-created_at']
 
 
+class ReviewMedia(models.Model):
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Фото'
+        VIDEO = 'video', 'Видео'
+
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='media')
+    file = models.FileField(upload_to='reviews/')
+    media_type = models.CharField(max_length=10, choices=MediaType.choices, default=MediaType.IMAGE)
+    sort_order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order']
+
+
 class ModerationQueue(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='moderation')
     reason = models.CharField(max_length=255, blank=True)

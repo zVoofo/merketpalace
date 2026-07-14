@@ -88,10 +88,11 @@
     {% if reviews %}
         <h2 class="section-title">Отзывы</h2>
         {% for r in reviews %}
-            <div style="background:var(--card);padding:16px;border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow)">
+            <div class="review-card">
                 <div class="stars">★ {{ r.rating }}</div>
                 <strong>{{ r.reviewer.first_name|default:r.reviewer.username }}</strong>
-                <p style="margin-top:8px">{{ r.text|linebreaks }}</p>
+                {% if r.text %}<p class="review-card__text">{{ r.text|linebreaks }}</p>{% endif %}
+                {% include 'includes/review_media.html' with media_items=r.media.all %}
             </div>
         {% endfor %}
     {% endif %}
@@ -99,9 +100,15 @@
     {% if user.is_authenticated and user != listing.user %}
         {% if review_form %}
             <h2 class="section-title">Оставить отзыв</h2>
-            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" data-confirm="Отправить отзыв?">
+            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form" id="review-form" enctype="multipart/form-data" data-confirm="Отправить отзыв?">
                 {% csrf_token %}
-                {{ review_form.as_p }}
+                {% for field in review_form %}
+                    <div class="form__group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                {% endfor %}
+                {% include 'includes/review_media_uploader.html' %}
                 <button type="submit" class="btn">Отправить</button>
             </form>
         {% elif review_block_reason %}

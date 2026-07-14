@@ -1,0 +1,16 @@
+{% load static %}
+{% if media_items %}
+<div class="review-media">
+    {% for m in media_items %}
+        {% if m.media_type == 'video' %}
+            <div class="review-media__item review-media__item--video">
+                <video src="{{ m.file.url }}" controls playsinline preload="metadata" class="review-media__video"></video>
+            </div>
+        {% else %}
+            <button type="button" class="review-media__item review-media__item--image">
+                <img src="{{ m.file.url }}" alt="" class="chat-lightbox-trigger" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+            </button>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}

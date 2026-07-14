@@ -29,6 +29,7 @@
                         </p>
                     {% endif %}
                     {% if r.text %}<p class="review-card__text">{{ r.text|linebreaks }}</p>{% endif %}
+                    {% include 'includes/review_media.html' with media_items=r.media.all %}
                 </article>
             {% endfor %}
         </div>

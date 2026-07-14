@@ -6,8 +6,8 @@ from django.views.decorators.http import require_POST
 from orders.models import OrderItem
 from catalog.models import Category, Brand, SearchRequest
 from .models import Listing, ModerationQueue, Review
-from .forms import ListingForm, ReviewForm, validate_media_files
-from .services import save_listing_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating
+from .forms import ListingForm, ReviewForm, validate_media_files, MAX_REVIEW_MEDIA
+from .services import save_listing_media, save_review_media, user_can_review, update_listing_rating, remoderate_listing, get_seller_rating
 from .moderation import schedule_auto_moderation
 
 
@@ -32,7 +32,9 @@ def listing_detail(request, slug):
     similar = Listing.objects.filter(
         category=listing.category, status=Listing.Status.ACTIVE
     ).exclude(pk=listing.pk).prefetch_related('images')[:6]
-    reviews = listing.reviews.filter(status=Review.Status.APPROVED).select_related('reviewer')
+    reviews = listing.reviews.filter(
+        status=Review.Status.APPROVED,
+    ).select_related('reviewer').prefetch_related('media')
     can_review = False
     review_block_reason = ''
     review_form = None
@@ -140,18 +142,32 @@ def review_create(request, slug):
         return redirect('orders:list')
     if request.method == 'POST':
         form = ReviewForm(request.POST)
-        if form.is_valid():
+        media_files = request.FILES.getlist('media')
+        media_errors = validate_media_files(
+            media_files, require_min=False, max_count=MAX_REVIEW_MEDIA,
+        )
+        if form.is_valid() and not media_errors:
             review = form.save(commit=False)
             review.listing = listing
             review.reviewer = request.user
             review.seller = listing.user
             review.status = Review.Status.APPROVED
             review.save()
+            if media_files:
+                save_review_media(review, media_files)
             update_listing_rating(listing)
             messages.success(request, 'Спасибо за отзыв!')
             if next_url:
                 return redirect(next_url)
-    return redirect('orders:list')
+            return redirect('listings:detail', slug=listing.slug)
+        for err in media_errors:
+            messages.error(request, err)
+        for field, errors in form.errors.items():
+            for err in errors:
+                messages.error(request, f'{field}: {err}')
+        if next_url:
+            return redirect(next_url)
+        return redirect('listings:detail', slug=listing.slug)
 
 
 @login_required
@@ -223,7 +239,7 @@ def looking_requests_context(user):
 def seller_reviews(request):
     reviews = Review.objects.filter(
         seller=request.user, status=Review.Status.APPROVED,
-    ).select_related('reviewer', 'listing').order_by('-created_at')
+    ).select_related('reviewer', 'listing').prefetch_related('media').order_by('-created_at')
     rating_avg, rating_count = get_seller_rating(request.user)
     incoming_count = SearchRequest.objects.filter(
         user=request.user,

@@ -3,6 +3,7 @@ from .models import Listing, Review
 
 MAX_MEDIA = 10
 MIN_MEDIA = 1
+MAX_REVIEW_MEDIA = 5
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
 ALLOWED_VIDEO_TYPES = {'video/mp4', 'video/webm', 'video/quicktime'}
 
@@ -64,13 +65,14 @@ def detect_media_type(uploaded_file) -> str:
     return 'image'
 
 
-def validate_media_files(files, existing_count: int = 0, require_min: bool = True):
+def validate_media_files(files, existing_count: int = 0, require_min: bool = True, max_count: int = MAX_MEDIA):
     errors = []
     total = existing_count + len(files)
-    if require_min and total < MIN_MEDIA:
-        errors.append(f'Добавьте от {MIN_MEDIA} до {MAX_MEDIA} фото или видео')
-    if total > MAX_MEDIA:
-        errors.append(f'Максимум {MAX_MEDIA} файлов (сейчас будет {total})')
+    min_required = MIN_MEDIA if require_min else 0
+    if require_min and total < min_required:
+        errors.append(f'Добавьте от {MIN_MEDIA} до {max_count} фото или видео')
+    if total > max_count:
+        errors.append(f'Максимум {max_count} файлов (сейчас будет {total})')
     for f in files:
         mt = detect_media_type(f)
         ct = getattr(f, 'content_type', '') or ''

@@ -1,10 +1,16 @@
 {% load static %}
 <div class="media-uploader" id="media-uploader"
      data-max="{{ max|default:10 }}"
-     data-min="{{ min|default:1 }}"
+     data-min="{% if min is not None %}{{ min }}{% else %}1{% endif %}"
      data-existing="{{ existing|default:0 }}">
     <label class="form__group-label">{{ label|default:"Фото и видео" }}</label>
-    <p class="media-uploader__hint">От {{ min|default:1 }} до {{ max|default:10 }} файлов · JPG, PNG, WebP, GIF, MP4, WebM</p>
+    <p class="media-uploader__hint">
+        {% if optional %}
+            До {{ max|default:10 }} файлов по желанию · JPG, PNG, WebP, GIF, MP4, WebM · макс. 50 МБ
+        {% else %}
+            От {% if min is not None %}{{ min }}{% else %}1{% endif %} до {{ max|default:10 }} файлов · JPG, PNG, WebP, GIF, MP4, WebM
+        {% endif %}
+    </p>
     <div class="media-uploader__grid" id="media-uploader-grid">
         {% if existing_images %}
             {% for img in existing_images %}
