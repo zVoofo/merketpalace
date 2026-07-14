@@ -2,6 +2,13 @@ document.getElementById('burger')?.addEventListener('click', () => {
   document.querySelector('.nav')?.classList.toggle('open');
 });
 
+/* Сброс горизонтального сдвига шапки после переполнения */
+(function resetPageScroll() {
+  document.documentElement.scrollLeft = 0;
+  document.body.scrollLeft = 0;
+  document.querySelector('.nav')?.scrollTo(0, 0);
+})();
+
 /* --- Фильтр цены --- */
 (function initPriceRange() {
   const minRange = document.getElementById('price-min-range');
