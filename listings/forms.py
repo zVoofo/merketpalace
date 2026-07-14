@@ -1,4 +1,6 @@
 from django import forms
+
+from catalog.validators import is_valid_listing_text
 from .models import Listing, Review
 
 MAX_MEDIA = 10
@@ -49,6 +51,21 @@ class ListingForm(forms.ModelForm):
         self.fields['sku'].required = False
         self.fields['warranty_text'].required = False
         self.fields['return_policy'].required = False
+
+    def clean_title(self):
+        title = (self.cleaned_data.get('title') or '').strip()
+        valid, err = is_valid_listing_text(title, min_length=3)
+        if not valid:
+            raise forms.ValidationError(err)
+        return title
+
+    def clean_description(self):
+        desc = (self.cleaned_data.get('description') or '').strip()
+        if desc and len(desc) > 25:
+            valid, err = is_valid_listing_text(desc[:500], min_length=10)
+            if not valid:
+                raise forms.ValidationError(err)
+        return desc
 
     def clean_price(self):
         price = self.cleaned_data.get('price')

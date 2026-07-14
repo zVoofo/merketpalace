@@ -3,7 +3,7 @@ import threading
 
 from django.utils import timezone
 
-from catalog.validators import is_valid_search_query
+from catalog.validators import is_valid_listing_text
 
 PROHIBITED_PATTERNS = [
     r'наркот', r'героин', r'кокаин', r'марихуан', r'мефедрон',
@@ -37,12 +37,12 @@ def check_listing(listing, is_update: bool = False) -> tuple[bool, str]:
     if not listing.title or len(listing.title.strip()) < 3:
         return False, 'Слишком короткое название'
     if not is_update:
-        valid, err = is_valid_search_query(listing.title)
+        valid, err = is_valid_listing_text(listing.title, min_length=3)
         if not valid:
             return False, f'Название: {err}'
-        if listing.description:
-            valid, err = is_valid_search_query(listing.description[:200])
-            if not valid and len(listing.description) > 20:
+        if listing.description and len(listing.description.strip()) > 25:
+            valid, err = is_valid_listing_text(listing.description[:500], min_length=10)
+            if not valid:
                 return False, f'Описание: {err}'
     ok, reason = _check_text(listing.title)
     if not ok:

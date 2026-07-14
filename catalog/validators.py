@@ -84,14 +84,14 @@ def _is_keyboard_mash(word: str) -> bool:
     if _has_repeating_fragment(w):
         return True
 
-    # Двойные символы в начале: цц..., аа...
-    if len(w) >= 4 and w[0] == w[1] and w[0] not in (CYR_VOWELS | LAT_VOWELS):
-        if _vowel_ratio(w, CYR_VOWELS | LAT_VOWELS) < 0.35:
+    # Двойные согласные в начале — только для явно длинного мусора
+    if len(w) >= 6 and w[0] == w[1] and w[0] not in (CYR_VOWELS | LAT_VOWELS):
+        if _vowel_ratio(w, CYR_VOWELS | LAT_VOWELS) < 0.25:
             return True
 
     letters_only = re.sub(r'[^a-zа-яё]', '', w)
-    if len(letters_only) >= 7 and len(set(letters_only)) / len(letters_only) > 0.85:
-        if _vowel_ratio(w, CYR_VOWELS | LAT_VOWELS) < 0.25:
+    if len(letters_only) >= 9 and len(set(letters_only)) / len(letters_only) > 0.88:
+        if _vowel_ratio(w, CYR_VOWELS | LAT_VOWELS) < 0.2:
             return True
 
     return False
@@ -102,6 +102,23 @@ def _contains_allowed_keyword(text: str) -> bool:
     return any(kw in low for kw in ALLOWED_KEYWORDS)
 
 
+def _is_product_token(word: str) -> bool:
+    """Артикулы, модели, бренды: X5, 256GB, BMW, GBH-226."""
+    if not word:
+        return False
+    if re.fullmatch(r'[A-Za-z]{2,6}', word):
+        return True
+    if re.fullmatch(r'[A-Za-z]\d{1,3}', word, re.I):
+        return True
+    if re.fullmatch(r'\d+[A-Za-z]{1,4}', word, re.I):
+        return True
+    if re.fullmatch(r'[A-Za-z0-9]+-[A-Za-z0-9]+', word):
+        return True
+    letters = sum(c.isalpha() for c in word)
+    digits = sum(c.isdigit() for c in word)
+    return letters >= 2 and digits >= 1 and len(word) >= 4
+
+
 def _word_looks_valid(word: str) -> bool:
     if len(word) < 2:
         return False
@@ -109,14 +126,59 @@ def _word_looks_valid(word: str) -> bool:
     if low in ALLOWED_KEYWORDS or any(kw in low for kw in ALLOWED_KEYWORDS if len(kw) >= 4):
         return True
     if word.isdigit():
-        return len(word) >= 3
+        return len(word) >= 2
+    if _is_product_token(word):
+        return True
     if _is_keyboard_mash(word):
         return False
-    # Нормальное слово: есть гласные и не более 3 согласных подряд
     vowels = CYR_VOWELS | LAT_VOWELS
     if _vowel_ratio(word, vowels) < 0.1 and len(word) > 3:
         return False
     return True
+
+
+def _is_obvious_mash_text(text: str) -> bool:
+    """Только явный бред: одно длинное слово-мусор или большинство слов — мусор."""
+    words = re.findall(r'[a-zA-Zа-яА-ЯёЁ]+', text or '')
+    if not words:
+        return False
+    mash = [w for w in words if len(w) >= 5 and _is_keyboard_mash(w)]
+    if len(words) == 1:
+        return bool(mash) or (len(words[0]) >= 6 and _is_keyboard_mash(words[0]))
+    return len(mash) >= max(2, int(len(words) * 0.6))
+
+
+def is_valid_listing_text(text: str, *, min_length: int = 3) -> tuple[bool, str]:
+    """Мягкая проверка названия/описания объявления (не путать с поиском)."""
+    t = (text or '').strip()
+    if len(t) < min_length:
+        return False, 'Слишком короткий текст'
+    if len(t) > 5000:
+        return False, 'Слишком длинный текст'
+    if re.fullmatch(r'[\d\s\.\-\+\(\)]+', t):
+        return False, 'Нельзя использовать только цифры'
+    if len(set(t.lower().replace(' ', ''))) == 1:
+        return False, 'Текст не может состоять из одинаковых символов'
+
+    if _contains_allowed_keyword(t):
+        return True, ''
+
+    if _is_obvious_mash_text(t):
+        return False, 'Текст похож на случайный набор букв — укажите реальное название товара'
+
+    words = re.findall(r'[a-zA-Zа-яА-ЯёЁ0-9\-]+', t)
+    if not words:
+        return False, 'Введите осмысленное название товара'
+
+    significant = [w for w in words if len(w) > 1 or w.isdigit()]
+    if not significant:
+        return False, 'Введите осмысленное название товара'
+
+    valid_words = [w for w in significant if _word_looks_valid(w)]
+    if valid_words:
+        return True, ''
+
+    return False, 'Не удалось распознать название товара — проверьте написание'
 
 
 def is_valid_search_query(query: str) -> tuple[bool, str]:
@@ -141,15 +203,12 @@ def is_valid_search_query(query: str) -> tuple[bool, str]:
     if not valid_words:
         return False, 'Запрос похож на случайный набор букв. Укажите название товара, например: «тормозные колодки BMW»'
 
-    # Если одно "слово" и оно длинное без пробелов — доп. проверка
-    if len(words) == 1 and len(words[0]) >= 5 and not valid_words:
+    if _is_obvious_mash_text(q):
         return False, 'Запрос похож на случайный набор букв'
 
-    # Все слова должны быть валидными (кроме коротких предлогов/артикулов)
-    for w in words:
-        if len(w) <= 2:
-            continue
-        if not _word_looks_valid(w) and not w.isdigit():
-            return False, f'«{w}» не похоже на название товара. Проверьте запрос'
+    # Отклоняем только если большинство слов — мусор (не каждое слово отдельно)
+    bad = [w for w in words if len(w) > 2 and not _word_looks_valid(w) and not w.isdigit()]
+    if bad and len(bad) >= len(words) and not valid_words:
+        return False, f'«{bad[0]}» не похоже на название товара. Проверьте запрос'
 
     return True, ''
