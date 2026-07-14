@@ -83,7 +83,7 @@ if _database_url:
     DATABASES['default'] = dj_database_url.config(
         default=_database_url,
         conn_max_age=600,
-        ssl_require=not DEBUG,
+        ssl_require=False,
     )
 
 # Для MySQL раскомментируйте:
@@ -117,7 +117,7 @@ STORAGES = {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 
