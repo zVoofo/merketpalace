@@ -151,8 +151,15 @@ def message_edit(request, pk):
 @require_POST
 def message_delete(request, pk):
     msg = get_object_or_404(Message, pk=pk, sender=request.user)
+    if msg.attachment:
+        msg.attachment.delete(save=False)
+        msg.attachment = None
+        msg.attachment_type = ''
+        msg.attachment_name = ''
     msg.is_deleted = True
     msg.body = ''
-    msg.save(update_fields=['is_deleted', 'body'])
+    msg.save(update_fields=[
+        'is_deleted', 'body', 'attachment', 'attachment_type', 'attachment_name',
+    ])
     return JsonResponse({'ok': True})
 

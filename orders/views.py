@@ -9,6 +9,10 @@ from .models import Cart, CartItem, Order, OrderItem
 from .context_processors import get_or_create_cart
 
 
+def is_own_listing(user, listing) -> bool:
+    return user.is_authenticated and listing.user_id == user.id
+
+
 class CheckoutForm(forms.Form):
     buyer_type = forms.ChoiceField(choices=Order.BuyerType.choices, label='Тип покупателя')
     delivery_type = forms.ChoiceField(choices=Order.DeliveryType.choices, label='Доставка')
@@ -27,10 +31,15 @@ class CheckoutForm(forms.Form):
 
 def cart_view(request):
     cart = get_or_create_cart(request)
+    if request.user.is_authenticated:
+        removed = cart.items.filter(listing__user=request.user).delete()[0]
+        if removed:
+            messages.info(request, 'Свои объявления нельзя заказать — убрали из корзины')
+    items = cart.items.select_related('listing').all()
     return render(request, 'orders/cart.html', {
         'title': 'Корзина',
         'cart': cart,
-        'items': cart.items.select_related('listing').all(),
+        'items': items,
         'total': cart.total(),
     })
 
@@ -38,6 +47,12 @@ def cart_view(request):
 def cart_add(request):
     if request.method == 'POST':
         listing = get_object_or_404(Listing, pk=request.POST.get('listing_id'), status=Listing.Status.ACTIVE)
+        if is_own_listing(request.user, listing):
+            messages.error(request, 'Нельзя заказать своё объявление')
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('listings:detail', slug=listing.slug)
         qty = max(1, int(request.POST.get('quantity', 1)))
         if listing.quantity < qty:
             messages.error(request, 'Недостаточно товара на складе')
@@ -117,6 +132,12 @@ def checkout_view(request):
     items = cart.items.select_related('listing').all()
     if not items:
         messages.error(request, 'Корзина пуста')
+        return redirect('cart')
+    own_items = [i for i in items if is_own_listing(request.user, i.listing)]
+    if own_items:
+        for item in own_items:
+            item.delete()
+        messages.error(request, 'Нельзя заказать своё объявление')
         return redirect('cart')
     wallet = get_wallet(request.user)
     if request.method == 'POST':

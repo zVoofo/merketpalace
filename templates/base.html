@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=10">
 </head>
 <body>
 <header class="header">
@@ -18,22 +18,21 @@
             <input type="search" name="q" placeholder="Поиск..." value="{{ request.GET.q|default:'' }}">
             <button type="submit" aria-label="Искать">🔍</button>
         </form>
-        <nav class="nav">
+        <nav class="nav" id="main-nav">
             <a href="{% url 'catalog:index' %}">Каталог</a>
             <a href="{% url 'catalog:looking' %}">Заявки</a>
-            {% if user.is_authenticated %}<a href="{% url 'chat:support' %}">Поддержка</a>{% endif %}
             {% if user.is_authenticated %}
-                <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent header__create" title="Создать объявление">+ Объявление</a>
-                <a href="{% url 'accounts:wallet' %}">💰 {{ user.wallet_balance|floatformat:0 }}₽</a>
-                <a href="{% url 'cart' %}">🛒 {% if cart_count %}({{ cart_count }}){% endif %}</a>
-                <a href="{% url 'chat:index' %}">💬{% if chat_unread_count %} <span class="nav-badge">{{ chat_unread_count }}</span>{% endif %}</a>
+                <a href="{% url 'listings:create' %}" class="btn btn--sm btn--accent">+ Объявление</a>
+                <a href="{% url 'accounts:wallet' %}" class="nav__money" title="Кошелёк">{{ user.wallet_balance|floatformat:0 }}₽</a>
+                <a href="{% url 'cart' %}" class="nav__icon-link" title="Корзина">🛒{% if cart_count %}<span class="nav-mini">{{ cart_count }}</span>{% endif %}</a>
+                <a href="{% url 'chat:index' %}" class="nav__icon-link" title="Сообщения">💬{% if chat_unread_count %}<span class="nav-mini">{{ chat_unread_count }}</span>{% endif %}</a>
 
                 <div class="nav-notify" id="nav-notify">
-                    <button type="button" class="nav-notify__bell" id="notify-bell" aria-label="Уведомления">
+                    <button type="button" class="nav-notify__bell" id="notify-bell" aria-label="Уведомления" aria-expanded="false" aria-controls="notify-dropdown">
                         🔔
-                        {% if notification_count %}<span class="nav-badge">{{ notification_count }}</span>{% endif %}
+                        {% if notification_count %}<span class="nav-badge" id="notify-badge">{{ notification_count }}</span>{% endif %}
                     </button>
-                    <div class="nav-notify__dropdown" id="notify-dropdown" hidden>
+                    <div class="nav-notify__dropdown" id="notify-dropdown" hidden role="menu">
                         <div class="nav-notify__head">Уведомления</div>
                         <div class="nav-notify__list" id="notify-list">
                             {% for n in header_notifications %}
@@ -52,15 +51,15 @@
                     </div>
                 </div>
 
+                {% if user.active_role == 'seller' %}<a href="{% url 'seller:dashboard' %}">Кабинет</a>{% endif %}
                 <a href="{% url 'orders:list' %}">Заказы</a>
+                <a href="{% url 'chat:support' %}">Поддержка</a>
                 {% if user.is_staff %}
                     <a href="{% url 'panel:dashboard' %}">Панель</a>
-                    <a href="/admin/">Admin</a>
                 {% endif %}
-                {% if user.active_role == 'seller' %}<a href="{% url 'seller:dashboard' %}">Кабинет</a>{% endif %}
-                <a href="{% url 'accounts:profile' %}">
-                    {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" style="width:24px;height:24px;border-radius:50%;vertical-align:middle">{% endif %}
-                    {{ user.first_name|default:user.username }}
+                <a href="{% url 'accounts:profile' %}" class="nav__profile" title="Профиль">
+                    {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" class="nav__profile-img">{% endif %}
+                    <span>{{ user.first_name|default:user.username }}</span>
                 </a>
                 <a href="{% url 'accounts:logout' %}">Выход</a>
             {% else %}
@@ -99,6 +98,6 @@
     <img src="" alt="" id="lightbox-img">
 </div>
 
-<script src="{% static 'js/app.js' %}?v=3"></script>
+<script src="{% static 'js/app.js' %}?v=5"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 document.getElementById('burger')?.addEventListener('click', () => {
-  document.querySelector('.nav')?.classList.toggle('open');
+  document.getElementById('main-nav')?.classList.toggle('open');
 });
 
 /* Сброс горизонтального сдвига шапки после переполнения */
@@ -207,8 +207,10 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   const csrf = box.dataset.csrf;
   let activeMsgId = null;
 
-  const showMenu = (x, y, msgId) => {
+  const showMenu = (x, y, msgId, hasAttachment) => {
     activeMsgId = msgId;
+    const editBtn = menu.querySelector('[data-action="edit"]');
+    if (editBtn) editBtn.hidden = hasAttachment;
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     menu.removeAttribute('hidden');
@@ -219,16 +221,18 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
     menu.setAttribute('hidden', '');
     menu.style.display = 'none';
     activeMsgId = null;
+    const editBtn = menu.querySelector('[data-action="edit"]');
+    if (editBtn) editBtn.hidden = false;
   };
 
   const openMenuForMsg = (msg, x, y) => {
-    if (!msg || msg.dataset.own !== '1' || msg.dataset.hasAttachment === '1') return;
-    showMenu(x, y, msg.dataset.msgId);
+    if (!msg || msg.dataset.own !== '1') return;
+    showMenu(x, y, msg.dataset.msgId, msg.dataset.hasAttachment === '1');
   };
 
   box.addEventListener('contextmenu', (e) => {
     const msg = e.target.closest('.chat-msg[data-own="1"]');
-    if (!msg || msg.dataset.hasAttachment === '1') return;
+    if (!msg) return;
     e.preventDefault();
     openMenuForMsg(msg, e.clientX, e.clientY);
   });
@@ -259,7 +263,9 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
     hideMenu();
 
     if (action === 'delete') {
-      if (!confirm('Удалить сообщение?')) return;
+      const hasAttachment = box.querySelector('[data-msg-id="' + msgId + '"]')?.dataset.hasAttachment === '1';
+      const label = hasAttachment ? 'Удалить фото/видео?' : 'Удалить сообщение?';
+      if (!confirm(label)) return;
       const fd = new FormData();
       fd.append('csrfmiddlewaretoken', csrf);
       const res = await fetch('/messages/message/' + msgId + '/delete/', { method: 'POST', body: fd });
@@ -290,7 +296,7 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   });
 });
 
-/* --- Уведомления: выпадающий список (как ВК) --- */
+/* --- Уведомления: выпадающий список --- */
 (function initNotifyDropdown() {
   const wrap = document.getElementById('nav-notify');
   const bell = document.getElementById('notify-bell');
@@ -300,31 +306,51 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value
     || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 
+  const positionDropdown = () => {
+    const rect = bell.getBoundingClientRect();
+    dropdown.style.top = `${rect.bottom + 8}px`;
+    dropdown.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+    dropdown.style.left = 'auto';
+  };
+
   const close = () => {
     dropdown.setAttribute('hidden', '');
     dropdown.style.display = 'none';
+    bell.setAttribute('aria-expanded', 'false');
   };
 
-  const open = async () => {
+  const open = () => {
+    positionDropdown();
     dropdown.removeAttribute('hidden');
     dropdown.style.display = 'flex';
+    bell.setAttribute('aria-expanded', 'true');
     if (csrf) {
       const fd = new FormData();
       fd.append('csrfmiddlewaretoken', csrf);
       fetch('/accounts/notifications/read/', { method: 'POST', body: fd }).catch(() => {});
-      wrap.querySelectorAll('.nav-badge').forEach((b) => b.remove());
+      document.getElementById('notify-badge')?.remove();
       dropdown.querySelectorAll('.nav-notify__item--new').forEach((el) => el.classList.remove('nav-notify__item--new'));
     }
   };
 
   bell.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
     if (dropdown.hasAttribute('hidden')) open();
     else close();
   });
 
+  window.addEventListener('resize', () => {
+    if (!dropdown.hasAttribute('hidden')) positionDropdown();
+  });
+
   document.addEventListener('click', (e) => {
-    if (!wrap.contains(e.target)) close();
+    if (wrap.contains(e.target) || dropdown.contains(e.target)) return;
+    close();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
   });
 
   dropdown.addEventListener('click', async (e) => {
@@ -340,10 +366,13 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (res.ok) {
       row?.remove();
       if (!dropdown.querySelector('.nav-notify__row')) {
-        const empty = document.createElement('p');
-        empty.className = 'nav-notify__empty';
-        empty.textContent = 'Нет уведомлений';
-        document.getElementById('notify-list')?.appendChild(empty);
+        const list = document.getElementById('notify-list');
+        if (list && !list.querySelector('.nav-notify__empty')) {
+          const empty = document.createElement('p');
+          empty.className = 'nav-notify__empty';
+          empty.textContent = 'Нет уведомлений';
+          list.appendChild(empty);
+        }
       }
     }
   });

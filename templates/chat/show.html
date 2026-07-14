@@ -92,7 +92,7 @@
                             {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
                         </div>
                     </div>
-                    {% if m.sender == user and not m.attachment %}
+                    {% if m.sender == user %}
                         <button type="button" class="chat-msg__menu-btn" data-msg-id="{{ m.pk }}" title="Действия">⋯</button>
                     {% endif %}
                 </div>
@@ -113,7 +113,7 @@
             </div>
             <button type="submit" class="btn btn--sm">Отправить</button>
         </form>
-        <p class="chat-hint">ПКМ или кнопка ⋯ — редактировать / удалить своё сообщение</p>
+        <p class="chat-hint">ПКМ или кнопка ⋯ — редактировать или удалить своё сообщение; фото и видео можно удалить</p>
     </div>
     <div id="chat-context-menu" class="chat-context-menu" hidden>
         <button type="button" data-action="edit">✏️ Редактировать</button>
