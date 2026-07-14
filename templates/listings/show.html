@@ -1,82 +1,82 @@
-{% extends 'base.html' %}
-{% load static listing_extras %}
-
-{% block content %}
-<div class="container">
-    <div class="product">
-        <div class="product__gallery">
-            {% for img in listing.images.all %}
-                {% if img.media_type == 'video' %}
-                    <video src="{{ img.file.url }}" controls style="width:100%;border-radius:var(--radius);margin-bottom:8px"></video>
-                {% else %}
-                    <img src="{{ img.file.url }}" alt="{{ listing.title }}" loading="lazy">
-                {% endif %}
-            {% empty %}
-                <img src="{% static 'img/no-photo.svg' %}" alt="Нет фото" class="card__img">
-            {% endfor %}
-        </div>
-        <div>
-            <h1>{{ listing.title }}</h1>
-            <div class="product__meta">{{ listing.category.name }}{% if listing.user.is_verified %} · <span class="verified">✓ Верифицирован</span>{% endif %}</div>
-            <div class="product__price">{{ listing.price|floatformat:0 }} ₽
-                {% if listing.old_price %}<span class="card__old">{{ listing.old_price|floatformat:0 }} ₽</span>{% endif %}
-            </div>
-            {% if listing.rating_count %}
-                <p class="stars">★ {{ listing.rating_avg }} ({{ listing.rating_count }} отзывов)</p>
-            {% endif %}
-            <p class="product__meta">{% if listing.in_stock %}В наличии: {{ listing.quantity }} шт.{% else %}<span style="color:var(--error)">Нет в наличии</span>{% endif %}</p>
-            {% if listing.sku %}<p class="product__meta">Артикул: <strong>{{ listing.sku }}</strong></p>{% endif %}
-            {% if listing.has_warranty %}<span class="warranty-badge">🛡 Гарантия</span>{% endif %}
-            <div class="product__actions">
-                {% if listing.in_stock %}
-                <form method="POST" action="{% url 'cart_add' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="listing_id" value="{{ listing.id }}">
-                    <input type="hidden" name="next" value="{{ request.path }}">
-                    <button type="submit" class="btn">В корзину</button>
-                </form>
-                {% endif %}
-                {% if user.is_authenticated and user != listing.user %}
-                    <a href="{% url 'chat:start' listing.id %}" class="btn btn--outline">Написать продавцу</a>
-                {% endif %}
-            </div>
-            <div style="margin-top:24px"><h3>Описание</h3><p>{{ listing.description|linebreaks|default:"Нет описания" }}</p></div>
-        </div>
-    </div>
-    {% if similar %}
-        <h2 style="margin:40px 0 16px">Похожие</h2>
-        <div class="grid">
-            {% for item in similar %}
-                <a href="{% url 'listings:detail' item.slug %}" class="card">
-                    <img class="card__img" src="{% listing_image_url item %}" alt="">
-                    <div class="card__body"><div class="card__title">{{ item.title }}</div><div class="card__price">{{ item.price|floatformat:0 }} ₽</div></div>
-                </a>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if reviews %}
-        <h2 style="margin:40px 0 16px">Отзывы</h2>
-        {% for r in reviews %}
-            <div style="background:var(--card);padding:16px;border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow)">
-                <div class="stars">★ {{ r.rating }}</div>
-                <strong>{{ r.reviewer.first_name|default:r.reviewer.username }}</strong>
-                <p style="margin-top:8px">{{ r.text|linebreaks }}</p>
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    {% if user.is_authenticated and user != listing.user %}
-        {% if review_form %}
-            <h2 style="margin:40px 0 16px">Оставить отзыв</h2>
-            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form">
-                {% csrf_token %}
-                {{ review_form.as_p }}
-                <button type="submit" class="btn">Отправить</button>
-            </form>
-        {% elif review_block_reason %}
-            <p style="margin-top:32px;color:var(--muted)">{{ review_block_reason }}</p>
-        {% endif %}
-    {% endif %}
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    <div class="product">
+        <div class="product__gallery">
+            {% for img in listing.images.all %}
+                {% if img.media_type == 'video' %}
+                    <video src="{{ img.file.url }}" controls style="width:100%;border-radius:var(--radius);margin-bottom:8px"></video>
+                {% else %}
+                    <img src="{{ img.file.url }}" alt="{{ listing.title }}" loading="lazy">
+                {% endif %}
+            {% empty %}
+                <img src="{% static 'img/no-photo.svg' %}" alt="Нет фото" class="card__img">
+            {% endfor %}
+        </div>
+        <div>
+            <h1>{{ listing.title }}</h1>
+            <div class="product__meta">{{ listing.category.name }}{% if listing.user.is_verified %} · <span class="verified">✓ Верифицирован</span>{% endif %}</div>
+            <div class="product__price">{{ listing.price|floatformat:0 }} ₽
+                {% if listing.old_price %}<span class="card__old">{{ listing.old_price|floatformat:0 }} ₽</span>{% endif %}
+            </div>
+            {% if listing.rating_count %}
+                <p class="stars">★ {{ listing.rating_avg }} ({{ listing.rating_count }} отзывов)</p>
+            {% endif %}
+            <p class="product__meta">{% if listing.in_stock %}В наличии: {{ listing.quantity }} шт.{% else %}<span style="color:var(--error)">Нет в наличии</span>{% endif %}</p>
+            {% if listing.sku %}<p class="product__meta">Артикул: <strong>{{ listing.sku }}</strong></p>{% endif %}
+            {% if listing.has_warranty %}<span class="warranty-badge">🛡 Гарантия</span>{% endif %}
+            <div class="product__actions">
+                {% if listing.in_stock %}
+                <form method="POST" action="{% url 'cart_add' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="listing_id" value="{{ listing.id }}">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="btn">В корзину</button>
+                </form>
+                {% endif %}
+                {% if user.is_authenticated and user != listing.user %}
+                    <a href="{% url 'chat:start' listing.id %}" class="btn btn--outline">Написать продавцу</a>
+                {% endif %}
+            </div>
+            <div style="margin-top:24px"><h3>Описание</h3><p>{{ listing.description|linebreaks|default:"Нет описания" }}</p></div>
+        </div>
+    </div>
+    {% if similar %}
+        <h2 style="margin:40px 0 16px">Похожие</h2>
+        <div class="grid">
+            {% for item in similar %}
+                <a href="{% url 'listings:detail' item.slug %}" class="card">
+                    <img class="card__img" src="{% listing_image_url item %}" alt="" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                    <div class="card__body"><div class="card__title">{{ item.title }}</div><div class="card__price">{{ item.price|floatformat:0 }} ₽</div></div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if reviews %}
+        <h2 style="margin:40px 0 16px">Отзывы</h2>
+        {% for r in reviews %}
+            <div style="background:var(--card);padding:16px;border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow)">
+                <div class="stars">★ {{ r.rating }}</div>
+                <strong>{{ r.reviewer.first_name|default:r.reviewer.username }}</strong>
+                <p style="margin-top:8px">{{ r.text|linebreaks }}</p>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if user.is_authenticated and user != listing.user %}
+        {% if review_form %}
+            <h2 style="margin:40px 0 16px">Оставить отзыв</h2>
+            <form method="POST" action="{% url 'listings:review' listing.slug %}" class="form">
+                {% csrf_token %}
+                {{ review_form.as_p }}
+                <button type="submit" class="btn">Отправить</button>
+            </form>
+        {% elif review_block_reason %}
+            <p style="margin-top:32px;color:var(--muted)">{{ review_block_reason }}</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

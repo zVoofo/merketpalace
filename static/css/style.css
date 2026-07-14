@@ -86,17 +86,69 @@ a:hover{text-decoration:underline}
 .nav-badge{display:inline-block;min-width:18px;padding:1px 6px;border-radius:10px;background:var(--error);color:#fff;font-size:.7rem;text-align:center;vertical-align:top}
 .price-range{display:flex;flex-direction:column;gap:6px}
 .price-range input[type=range]{width:100%;accent-color:var(--primary)}
-.looking-widget__offer{display:flex;gap:12px;align-items:center;color:var(--text);text-decoration:none}
-.looking-widget__offer:hover{text-decoration:none;opacity:.9}
-.chat-attach-img{max-width:220px;border-radius:8px;display:block;margin-bottom:6px}
-.chat-attach-video{max-width:260px;border-radius:8px;display:block;margin-bottom:6px}
-.chat-attach-file{display:block;margin-bottom:6px}
-.chat-attach-btn{cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+/* --- Загрузчик медиа --- */
+.media-uploader{margin:16px 0}
+.media-uploader__hint{font-size:.8rem;color:var(--muted);margin-bottom:12px}
+.media-uploader__grid{display:flex;flex-wrap:wrap;gap:12px}
+.media-uploader__item{position:relative;width:110px;height:110px;border-radius:12px;overflow:hidden;background:var(--bg);border:2px solid var(--border);flex-shrink:0}
+.media-uploader__item--add{border-style:dashed;cursor:pointer;transition:border-color .2s,background .2s}
+.media-uploader__item--add:hover{border-color:var(--primary);background:#eff6ff}
+.media-uploader__add-label{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer}
+.media-uploader__plus{font-size:2rem;color:var(--primary);line-height:1}
+.media-uploader__add-text{font-size:.75rem;color:var(--muted);margin-top:4px}
+.media-uploader__item img,.media-uploader__item video{width:100%;height:100%;object-fit:cover}
+.media-uploader__check{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--success);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.media-uploader__badge{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;padding:2px 6px;border-radius:4px;font-size:.7rem}
+.media-uploader__name{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:.65rem;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-uploader__remove{position:absolute;top:4px;left:4px;width:20px;height:20px;border:none;background:rgba(0,0,0,.5);color:#fff;border-radius:50%;cursor:pointer;font-size:.85rem;line-height:1}
+.media-uploader__count{font-size:.85rem;color:var(--muted);margin-top:8px}
+.media-uploader__input{position:absolute;opacity:0;width:0;height:0}
+/* --- Профиль / Ищу --- */
+.looking-widget{margin-bottom:28px}
+.looking-widget__title{font-size:1.1rem;margin-bottom:14px}
+.looking-widget__item{background:var(--card);padding:18px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow)}
+.looking-widget__query{color:var(--muted);font-size:.85rem;margin-bottom:6px}
+.looking-widget__seller{margin:8px 0 12px}
+.looking-widget__offer{display:flex;gap:14px;align-items:center;color:var(--text);text-decoration:none;padding:12px;background:var(--bg);border-radius:10px;margin-bottom:12px}
+.looking-widget__offer img{border-radius:10px;object-fit:cover;background:#e2e8f0;flex-shrink:0}
+.looking-widget__price{display:block;color:var(--primary);font-weight:700;margin-top:4px}
+.notifications-block{margin-bottom:28px}
+.notifications-block__item{background:var(--card);padding:14px 18px;border-radius:10px;margin-bottom:10px;box-shadow:var(--shadow)}
+.notifications-block__item--new{border-left:4px solid var(--primary)}
+.profile-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:18px;background:var(--bg);border-radius:var(--radius);margin-bottom:20px}
+.profile-card__avatar{width:80px;height:80px;border-radius:50%;object-fit:cover}
+.profile-card__avatar--empty{display:flex;align-items:center;justify-content:center;background:var(--border);font-size:2rem}
+.avatar-upload{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.avatar-upload__btn{padding:8px 16px;background:var(--bg);border:1px dashed var(--border);border-radius:8px;cursor:pointer;font-size:.9rem}
+.avatar-upload__btn:hover{border-color:var(--primary)}
+.avatar-upload__name{font-size:.85rem;color:var(--muted)}
+.form__optional{font-weight:400;color:var(--muted);font-size:.85rem}
+.form__error{color:var(--error);font-size:.85rem;margin-top:4px}
+.profile-verify{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+.profile-verify__box{padding:16px;background:var(--bg);border-radius:8px;margin-bottom:14px}
+.profile-verify__form{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.profile-verify__code{padding:8px;width:120px;border:1px solid var(--border);border-radius:8px}
+/* --- Чат --- */
+.chat-attach-img{max-width:220px;border-radius:8px;display:block;margin-bottom:4px}
+.chat-attach-video{max-width:260px;border-radius:8px;display:block;margin-bottom:4px}
+.chat-attach-file{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:4px;color:var(--text);text-decoration:none;border:1px solid var(--border)}
+.chat-attach-file:hover{background:#e2e8f0;text-decoration:none}
+.chat-attach-label{display:block;font-size:.75rem;color:var(--success);margin-bottom:4px}
+.chat-attach-btn{cursor:pointer;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);flex-shrink:0}
+.chat-input__main{flex:1;display:flex;flex-direction:column;gap:4px}
+.chat-input__file{font-size:.8rem;color:var(--primary)}
+.chat-hint{font-size:.75rem;color:var(--muted);padding:8px 12px 0;margin:0}
+.chat-msg{position:relative;display:flex;align-items:flex-end;gap:4px}
+.chat-msg--own{flex-direction:row-reverse}
+.chat-msg__menu-btn{border:none;background:transparent;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:1.1rem;line-height:1;border-radius:6px}
+.chat-msg__menu-btn:hover{background:var(--bg);color:var(--text)}
 .chat-msg__edited{font-size:.7rem;opacity:.7;margin-left:6px}
 .chat-msg--deleted .chat-msg__bubble{opacity:.5;font-style:italic}
-.chat-context-menu{position:absolute;z-index:200;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:4px;min-width:140px}
-.chat-context-menu button{display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:.9rem}
+.chat-context-menu{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:6px;min-width:160px}
+.chat-context-menu button{display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.9rem;border-radius:6px}
 .chat-context-menu button:hover{background:var(--bg)}
+.chat-list-item{display:block;background:var(--card);padding:16px;border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow);color:var(--text);text-decoration:none}
+.chat-list-item__user{display:block;font-size:.85rem;color:var(--muted);margin-top:4px}
 @media(max-width:768px){
   .burger{display:block}
   .nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);flex-direction:column;padding:16px;border-bottom:1px solid var(--border);box-shadow:var(--shadow)}

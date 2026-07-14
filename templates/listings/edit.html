@@ -6,25 +6,25 @@
     <h1>Редактировать</h1>
     <div class="form form--wide" style="margin-top:24px">
         {% if listing.images.exists %}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+            <div class="media-uploader__grid" style="margin-bottom:16px">
                 {% for img in listing.images.all %}
-                    {% if img.media_type == 'video' %}
-                        <video src="{{ img.file.url }}" style="width:80px;height:80px;object-fit:cover;border-radius:8px" muted></video>
-                    {% else %}
-                        <img src="{{ img.file.url }}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px">
-                    {% endif %}
+                    <div class="media-uploader__item is-done">
+                        {% if img.media_type == 'video' %}
+                            <video src="{{ img.file.url }}" muted></video>
+                            <span class="media-uploader__badge">▶</span>
+                        {% else %}
+                            <img src="{{ img.file.url }}" alt="" onerror="this.src='{% static 'img/no-photo.svg' %}'">
+                        {% endif %}
+                        <span class="media-uploader__check">✓</span>
+                    </div>
                 {% endfor %}
             </div>
             <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Сейчас: {{ listing.images.count }} / 10</p>
         {% endif %}
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" id="listing-form">
             {% csrf_token %}
             {% for field in form %}<div class="form__group"><label>{{ field.label }}</label>{{ field }}</div>{% endfor %}
-            <div class="form__group">
-                <label>Добавить фото/видео</label>
-                <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" multiple>
-                <p style="font-size:.8rem;color:var(--muted);margin-top:6px">Всего не больше 10 файлов</p>
-            </div>
+            {% include 'includes/media_uploader.html' with min=0 max=10 existing=listing.images.count label="Добавить фото/видео" %}
             <button type="submit" class="btn">Сохранить</button>
         </form>
     </div>

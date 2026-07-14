@@ -94,7 +94,7 @@
             <div class="grid">
                 {% for item in listings %}
                     <a href="{% url 'listings:detail' item.slug %}" class="card">
-                        <img class="card__img" src="{% listing_image_url item %}" alt="" loading="lazy">
+                        <img class="card__img" src="{% listing_image_url item %}" alt="" loading="lazy" data-fallback="{% static 'img/no-photo.svg' %}" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                         <div class="card__body">
                             <div class="card__title">{{ item.title }}</div>
                             <div class="card__price">{{ item.price|floatformat:0 }} ₽</div>

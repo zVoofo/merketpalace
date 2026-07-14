@@ -1,0 +1,10 @@
+{% load static %}
+<div class="media-uploader" id="media-uploader"
+     data-max="{{ max|default:10 }}"
+     data-min="{{ min|default:1 }}"
+     data-existing="{{ existing|default:0 }}">
+    <label class="form__group-label">{{ label|default:"Фото и видео" }}</label>
+    <p class="media-uploader__hint">От {{ min|default:1 }} до {{ max|default:10 }} файлов · JPG, PNG, WebP, GIF, MP4, WebM</p>
+    <div class="media-uploader__grid" id="media-uploader-grid"></div>
+    <p class="media-uploader__count" id="media-uploader-count"></p>
+</div>

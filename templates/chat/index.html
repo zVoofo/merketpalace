@@ -1,22 +1,23 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Сообщения</h1>
-
-    <a href="{% url 'chat:support' %}" style="display:block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:16px;border-radius:var(--radius);margin-bottom:16px;text-decoration:none">
-        <strong>💬 Поддержка</strong>
-        {% if support_conv and support_conv.unread %}<span class="card__badge" style="background:#fff;color:var(--primary)">{{ support_conv.unread }} новых</span>{% endif %}
-        <p style="opacity:.9;font-size:.9rem;margin-top:4px">Ответы на частые вопросы</p>
-    </a>
-
-    {% for c in conversations %}
-        <a href="{% url 'chat:detail' c.pk %}" style="display:block;background:var(--card);padding:16px;border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow);color:var(--text);text-decoration:none">
-            <strong>{{ c.listing.title }}</strong>
-            {% if c.unread %}<span class="card__badge">{{ c.unread }} новых</span>{% endif %}
-        </a>
-    {% empty %}
-        <p>Нет диалогов с продавцами</p>
-    {% endfor %}
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom:24px">Сообщения</h1>
+
+    <a href="{% url 'chat:support' %}" style="display:block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:16px;border-radius:var(--radius);margin-bottom:16px;text-decoration:none">
+        <strong>💬 Поддержка</strong>
+        {% if support_conv and support_conv.unread %}<span class="card__badge" style="background:#fff;color:var(--primary)">{{ support_conv.unread }} новых</span>{% endif %}
+        <p style="opacity:.9;font-size:.9rem;margin-top:4px">Ответы на частые вопросы</p>
+    </a>
+
+    {% for c in conversations %}
+        <a href="{% url 'chat:detail' c.pk %}" class="chat-list-item">
+            <strong>{% if c.listing %}{{ c.listing.title }}{% else %}Диалог{% endif %}</strong>
+            <span class="chat-list-item__user">{% if c.buyer == user %}{{ c.seller.first_name|default:c.seller.username }}{% else %}{{ c.buyer.first_name|default:c.buyer.username }}{% endif %}</span>
+            {% if c.unread %}<span class="card__badge">{{ c.unread }} новых</span>{% endif %}
+        </a>
+    {% empty %}
+        <p>Нет диалогов с продавцами</p>
+    {% endfor %}
+</div>
+{% endblock %}
