@@ -27,5 +27,12 @@ def dict_get(d, key):
 
 
 @register.filter
+def user_display(user):
+    if not user:
+        return 'Гость'
+    return user.first_name or user.username or 'Пользователь'
+
+
+@register.filter
 def media_is_video(media):
     return getattr(media, 'media_type', 'image') == 'video'

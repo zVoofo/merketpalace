@@ -63,6 +63,18 @@ document.getElementById('burger')?.addEventListener('click', () => {
   maxInput.addEventListener('input', syncFromInput);
 })();
 
+/* --- Мобильная панель фильтров каталога --- */
+(function initCatalogFilters() {
+  const toggle = document.getElementById('filter-toggle');
+  const panel = document.getElementById('catalog-filters-panel');
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener('click', () => {
+    const open = panel.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+})();
+
 /* --- Загрузчик фото/видео для объявлений --- */
 (function initMediaUploader() {
   const root = document.getElementById('media-uploader');

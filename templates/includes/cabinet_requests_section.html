@@ -1,8 +1,7 @@
 {% load static listing_extras %}
 
 {% if incoming_offers %}
-<section class="cabinet-section" id="offers">
-    <h2 class="section-title">Отклики продавцов <span class="cabinet-section__count">{{ incoming_count }}</span></h2>
+<section class="cabinet-section" id="offers">    <h2 class="section-title">Отклики продавцов <span class="cabinet-section__count">{{ incoming_count }}</span></h2>
     {% for sr in incoming_offers %}
         {% include 'includes/looking_offer_card.html' with sr=sr %}
     {% endfor %}
@@ -38,7 +37,7 @@
                 <span class="status-badge status-badge--found">Ожидает покупателя</span>
             </div>
             <p class="looking-card__meta">
-                {{ sr.user.first_name|default:sr.user.username }} · {{ sr.created_at|date:"d.m.Y H:i" }}
+                {% if sr.user %}{{ sr.user|user_display }} · {% endif %}{{ sr.created_at|date:"d.m.Y H:i" }}
             </p>
             {% if sr.matched_listing %}
                 <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">

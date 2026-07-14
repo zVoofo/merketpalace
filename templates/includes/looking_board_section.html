@@ -1,3 +1,4 @@
+{% load listing_extras %}
 <section class="looking-board" id="board">
     {% for sr in search_requests %}
         <article class="looking-request" data-request-id="{{ sr.pk }}" data-query="{{ sr.query|escape }}">
@@ -13,11 +14,11 @@
                     {% endif %}
                     <p class="looking-request__meta">
                         <time datetime="{{ sr.created_at|date:'c' }}">{{ sr.created_at|date:"d.m.Y H:i" }}</time>
-                        {% if sr.user %}
-                            <span class="looking-request__buyer">
-                                {% if sr.user.first_name %}{{ sr.user.first_name }}{% else %}{{ sr.user.username }}{% endif %}
-                            </span>
-                        {% endif %}
+                            {% if sr.user %}
+                                <span class="looking-request__buyer">{{ sr.user|user_display }}</span>
+                            {% else %}
+                                <span class="looking-request__buyer">Гость</span>
+                            {% endif %}
                     </p>
                 </div>
             </div>

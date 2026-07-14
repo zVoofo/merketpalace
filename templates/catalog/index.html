@@ -3,79 +3,178 @@
 
 {% block content %}
 <div class="container catalog-layout">
-    <aside class="filters">
-        <h3>Фильтры</h3>
-        <form method="GET">
+    <button type="button" class="filter-panel__toggle btn btn--outline" id="filter-toggle" aria-expanded="false" aria-controls="catalog-filters-panel">
+        Фильтры{% if has_active_filters %} <span class="filter-panel__toggle-badge">{{ active_filters|length }}</span>{% endif %}
+    </button>
+    <aside class="filter-panel" id="catalog-filters-panel">
+        <div class="filter-panel__head">
+            <h3 class="filter-panel__title">Фильтры</h3>
+            {% if has_active_filters %}
+                <a href="{% url 'catalog:index' %}{% if filters.q %}?q={{ filters.q|urlencode }}{% endif %}" class="filter-panel__reset">Сбросить</a>
+            {% endif %}
+        </div>
+        <form method="GET" class="filter-panel__form" id="catalog-filters">
             {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
-            <div class="form__group">
-                <label>Категория</label>
-                <select name="category" onchange="this.form.submit()">
-                    <option value="">Все</option>
-                    {% for c in categories %}<option value="{{ c.id }}" {% if filters.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-                </select>
-            </div>
-            <div class="form__group">
-                <label>Бренд</label>
-                <select name="brand">
-                    <option value="">Все</option>
-                    {% for b in brands %}<option value="{{ b.id }}" {% if filters.brand == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
-                </select>
-            </div>
-            <div class="form__group">
-                <label>Цена, ₽</label>
-                <div class="price-range">
-                    <input type="range" id="price-min-range" min="0" max="{{ price_slider_max }}" step="100" value="{{ filters.price_min|default:0 }}">
-                    <input type="range" id="price-max-range" min="0" max="{{ price_slider_max }}" step="100" value="{{ filters.price_max|default:price_slider_max }}">
+
+            <fieldset class="filter-panel__group">
+                <legend class="filter-panel__group-title">Показ</legend>
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Сортировка</span>
+                    <select name="sort" class="filter-panel__select">
+                        <option value="new" {% if sort == 'new' %}selected{% endif %}>Сначала новые</option>
+                        <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Цена ↑</option>
+                        <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Цена ↓</option>
+                        <option value="rating" {% if sort == 'rating' %}selected{% endif %}>По рейтингу</option>
+                        <option value="popular" {% if sort == 'popular' %}selected{% endif %}>По популярности</option>
+                    </select>
                 </div>
-                <div class="form__row" style="margin-top:8px">
-                    <input type="number" name="price_min" id="price-min-input" value="{{ filters.price_min|default:'' }}" placeholder="От" min="0">
-                    <input type="number" name="price_max" id="price-max-input" value="{{ filters.price_max|default:'' }}" placeholder="До" min="0">
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Мин. рейтинг</span>
+                    <select name="rating" class="filter-panel__select">
+                        <option value="">Любой</option>
+                        <option value="3" {% if filters.rating == '3' %}selected{% endif %}>от 3★</option>
+                        <option value="4" {% if filters.rating == '4' %}selected{% endif %}>от 4★</option>
+                        <option value="4.5" {% if filters.rating == '4.5' %}selected{% endif %}>от 4.5★</option>
+                    </select>
                 </div>
-            </div>
-            <div class="form__group"><label><input type="checkbox" name="in_stock" {% if filters.in_stock %}checked{% endif %}> Только в наличии</label></div>
-            <button type="submit" class="btn" style="width:100%">Применить</button>
+            </fieldset>
+
+            <fieldset class="filter-panel__group">
+                <legend class="filter-panel__group-title">Категория</legend>
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Раздел</span>
+                    <select name="category" class="filter-panel__select">
+                        <option value="">Все категории</option>
+                        {% for c in categories %}
+                            <option value="{{ c.id }}" {% if filters.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                            {% for child in c.children.all %}
+                                {% if child.is_active %}
+                                <option value="{{ child.id }}" {% if filters.category == child.id|stringformat:"s" %}selected{% endif %}> {{ child.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Бренд</span>
+                    <select name="brand" class="filter-panel__select">
+                        <option value="">Все бренды</option>
+                        {% for b in brands %}<option value="{{ b.id }}" {% if filters.brand == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Тип</span>
+                    <select name="type" class="filter-panel__select">
+                        <option value="">Любой</option>
+                        <option value="product" {% if filters.type == 'product' %}selected{% endif %}>Товар</option>
+                        <option value="service" {% if filters.type == 'service' %}selected{% endif %}>Услуга</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <fieldset class="filter-panel__group">
+                <legend class="filter-panel__group-title">Состояние и цена</legend>
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Состояние</span>
+                    <select name="condition" class="filter-panel__select">
+                        <option value="">Любое</option>
+                        <option value="new" {% if filters.condition == 'new' %}selected{% endif %}>Новый</option>
+                        <option value="used" {% if filters.condition == 'used' %}selected{% endif %}>Б/У</option>
+                        <option value="refurbished" {% if filters.condition == 'refurbished' %}selected{% endif %}>Восстановленный</option>
+                    </select>
+                </div>
+
+                {% if car_makes %}
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Марка авто</span>
+                    <select name="make" class="filter-panel__select">
+                        <option value="">Все марки</option>
+                        {% for m in car_makes %}<option value="{{ m.id }}" {% if filters.make == m.id|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="filter-panel__section">
+                    <span class="filter-panel__label">Цена, ₽</span>
+                    <div class="price-range">
+                        <input type="range" id="price-min-range" min="{{ price_slider_min }}" max="{{ price_slider_max }}" step="100" value="{{ filters.price_min|default:price_slider_min }}">
+                        <input type="range" id="price-max-range" min="{{ price_slider_min }}" max="{{ price_slider_max }}" step="100" value="{{ filters.price_max|default:price_slider_max }}">
+                    </div>
+                    <div class="filter-panel__price-inputs">
+                        <input type="number" name="price_min" id="price-min-input" value="{{ filters.price_min|default:'' }}" placeholder="От" min="0" class="filter-panel__input">
+                        <span class="filter-panel__dash">—</span>
+                        <input type="number" name="price_max" id="price-max-input" value="{{ filters.price_max|default:'' }}" placeholder="До" min="0" class="filter-panel__input">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="filter-panel__group">
+                <legend class="filter-panel__group-title">Дополнительно</legend>
+                <div class="filter-panel__section filter-panel__checks">
+                    <label class="filter-check"><input type="checkbox" name="in_stock" value="1" {% if filters.in_stock %}checked{% endif %}><span>В наличии</span></label>
+                    <label class="filter-check"><input type="checkbox" name="preorder" value="1" {% if filters.preorder %}checked{% endif %}><span>Под заказ</span></label>
+                    <label class="filter-check"><input type="checkbox" name="warranty" value="1" {% if filters.warranty %}checked{% endif %}><span>С гарантией</span></label>
+                    <label class="filter-check"><input type="checkbox" name="sale" value="1" {% if filters.sale %}checked{% endif %}><span>Со скидкой</span></label>
+                    <label class="filter-check"><input type="checkbox" name="photo" value="1" {% if filters.photo %}checked{% endif %}><span>Только с фото</span></label>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="btn filter-panel__submit">Показать</button>
         </form>
 
         {% if show_search_preview %}
-        <div class="search-preview" style="margin-top:20px">
-            <h3 class="search-preview__title">Пример товара</h3>
+        <div class="search-preview filter-panel__preview">
+            <h4 class="search-preview__title">Пример по запросу</h4>
             <div class="search-preview__frame">
-                <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="{{ search_query }}" width="400" height="400" loading="eager" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="{{ search_query }}" width="240" height="240" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
             </div>
-            <p class="search-preview__caption">«{{ search_query }}»</p>
         </div>
         {% endif %}
     </aside>
 
     <section class="catalog-main">
-        <h1 class="page-title">{{ title }}</h1>
-        <p class="catalog-count">Найдено: {{ total }}</p>
+        <header class="catalog-toolbar">
+            <div>
+                <h1 class="page-title catalog-toolbar__title">{{ title }}</h1>
+                <p class="catalog-count">Найдено: <strong>{{ total }}</strong></p>
+            </div>
+        </header>
+
+        {% if has_active_filters %}
+        <div class="filter-chips">
+            {% for key, label in active_filters %}
+                <a href="{{ filter_remove_urls|dict_get:key }}" class="filter-chip filter-chip--removable" title="Убрать фильтр">{{ label }}<span class="filter-chip__x" aria-hidden="true">×</span></a>
+            {% endfor %}
+            <a href="{% url 'catalog:index' %}{% if filters.q %}?q={{ filters.q|urlencode }}{% endif %}" class="filter-chip filter-chip--clear">Сбросить всё</a>
+        </div>
+        {% endif %}
 
         {% if search_invalid %}
             <div class="alert alert--error">{{ search_error }}</div>
             <p class="empty-hint">Примеры: «тормозные колодки BMW», «масляный фильтр», «iPhone 15»</p>
         {% elif zero_result %}
             <div class="zero-result">
-                <h2>Товар не найден на MarketPlace</h2>
-                <form method="POST" action="{% url 'catalog:search_request' %}" class="zero-result__form" data-confirm="Создать заявку «Ищу»? Продавцы смогут предложить товар.">
+                <h2>Товар не найден</h2>
+                <p>Попробуйте изменить фильтры или оставьте заявку продавцам</p>
+                <form method="POST" action="{% url 'catalog:search_request' %}" class="zero-result__form" data-confirm="Создать заявку «Ищу»?">
                     {% csrf_token %}
                     <input type="hidden" name="query" value="{{ search_query }}">
-                    <div class="form__group"><textarea name="description" placeholder="Опишите что ищете..."></textarea></div>
-                    <button type="submit" class="btn">Оставить заявку «Ищу»</button>
+                    <div class="form__group"><textarea name="description" placeholder="Опишите что ищете..." rows="3"></textarea></div>
+                    <button type="submit" class="btn">Оставить заявку</button>
                 </form>
             </div>
 
             {% if external_offers %}
-            <h2 class="section-title">Найдено на других площадках</h2>
+            <h2 class="section-title">На других площадках</h2>
             <div class="grid">
                 {% for offer in external_offers %}
                     <a href="{{ offer.url }}" target="_blank" rel="noopener" class="card">
                         <div class="card__img-wrap">
-                            <img class="card__img" src="{{ offer.image }}" alt="{{ offer.source }}" loading="eager" onerror="this.onerror=null;this.src='{% static 'img/offer-placeholder.svg' %}'">
+                            <img class="card__img" src="{{ offer.image }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/offer-placeholder.svg' %}'">
                         </div>
                         <div class="card__body">
                             <div class="card__title">{{ offer.title }}</div>
-                            <span class="card__badge">Открыть на {{ offer.source }} →</span>
+                            <span class="card__badge">{{ offer.source }} →</span>
                         </div>
                     </a>
                 {% endfor %}
@@ -86,13 +185,17 @@
                 {% for item in listings %}
                     <a href="{% url 'listings:detail' item.slug %}" class="card">
                         <div class="card__img-wrap">
-                            <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                            {% if item.old_price and item.old_price > item.price %}<span class="card__sale">−{{ item.discount_pct }}%</span>{% endif %}
+                            <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                         </div>
                         <div class="card__body">
                             <div class="card__title">{{ item.title }}</div>
                             <div class="card__price">{{ item.price|floatformat:0 }} ₽</div>
+                            {% if item.rating_count %}<div class="card__rating">★ {{ item.rating_avg|floatformat:1 }}</div>{% endif %}
                         </div>
                     </a>
+                {% empty %}
+                    <p class="empty-hint">Нет объявлений по выбранным фильтрам. <a href="{% url 'catalog:index' %}">Сбросить фильтры</a></p>
                 {% endfor %}
             </div>
         {% endif %}

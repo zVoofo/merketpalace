@@ -51,7 +51,7 @@
                     <span class="status-badge status-badge--found">Ожидает покупателя</span>
                 </div>
                 <p class="looking-card__meta">
-                    Покупатель: {{ sr.user.first_name|default:sr.user.username }}
+                    Покупатель: {{ sr.user|user_display }}
                     · {{ sr.created_at|date:"d.m.Y H:i" }}
                 </p>
                 {% if sr.matched_listing %}

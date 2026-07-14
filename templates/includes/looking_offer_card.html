@@ -4,7 +4,7 @@
     {% if sr.matched_listing %}
         {% with offer_seller=sr.matched_seller|default:sr.matched_listing.user %}
             {% if offer_seller %}
-                <p class="looking-widget__seller"><strong>{{ offer_seller.first_name|default:offer_seller.username }}</strong> предложил:</p>
+                <p class="looking-widget__seller"><strong>{{ offer_seller|user_display }}</strong> предложил:</p>
             {% endif %}
             <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
                 <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">

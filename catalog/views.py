@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Max, Min
+from django.db.models import Q, Count, Max, Min, F
 from django.conf import settings
 from django.http import HttpResponse, Http404
 from django.views.decorators.http import require_POST
@@ -12,6 +12,15 @@ from .validators import is_valid_search_query
 from .search_images import get_cached_search_image, get_preview_bytes
 from .external import get_external_offers
 from accounts.notifications import notify
+
+
+def _catalog_without(get_params, *keys):
+    params = get_params.copy()
+    for key in keys:
+        params.pop(key, None)
+    qs = params.urlencode()
+    base = reverse('catalog:index')
+    return f'{base}?{qs}' if qs else base
 
 
 def home(request):
@@ -32,10 +41,16 @@ def catalog_index(request):
     category_id = request.GET.get('category')
     brand_id = request.GET.get('brand')
     listing_type = request.GET.get('type')
+    condition = request.GET.get('condition')
     price_min = request.GET.get('price_min')
     price_max = request.GET.get('price_max')
     in_stock = request.GET.get('in_stock')
+    has_warranty = request.GET.get('warranty')
+    on_sale = request.GET.get('sale')
     make_id = request.GET.get('make')
+    min_rating = request.GET.get('rating')
+    with_photo = request.GET.get('photo')
+    preorder = request.GET.get('preorder')
     sort = request.GET.get('sort', 'new')
 
     search_valid = True
@@ -72,8 +87,23 @@ def catalog_index(request):
         qs = qs.filter(price__lte=price_max)
     if in_stock:
         qs = qs.filter(quantity__gt=0)
+    if has_warranty:
+        qs = qs.filter(has_warranty=True)
+    if on_sale:
+        qs = qs.filter(old_price__isnull=False, old_price__gt=F('price'))
+    if condition:
+        qs = qs.filter(condition=condition)
     if make_id:
         qs = qs.filter(car_compat__make_id=make_id)
+    if min_rating:
+        try:
+            qs = qs.filter(rating_avg__gte=float(min_rating), rating_count__gt=0)
+        except (TypeError, ValueError):
+            pass
+    if with_photo:
+        qs = qs.filter(images__isnull=False)
+    if preorder:
+        qs = qs.filter(quantity=0)
 
     order_map = {
         'price_asc': 'price',
@@ -97,20 +127,65 @@ def catalog_index(request):
     page = paginator.get_page(request.GET.get('page'))
 
     price_bounds = Listing.objects.filter(status='active').aggregate(
+        min_price=Min('price'),
         max_price=Max('price'),
     )
+    price_min_default = int(price_bounds.get('min_price') or 0)
     price_max_default = int(price_bounds.get('max_price') or 500000)
     if price_max_default < 10000:
         price_max_default = 500000
+
+    active_filters = []
+    if q:
+        active_filters.append(('q', f'«{q}»'))
+    if category_id:
+        cat = Category.objects.filter(pk=category_id).first()
+        if cat:
+            active_filters.append(('category', cat.name))
+    if brand_id:
+        br = Brand.objects.filter(pk=brand_id).first()
+        if br:
+            active_filters.append(('brand', br.name))
+    if listing_type:
+        active_filters.append(('type', 'Товар' if listing_type == 'product' else 'Услуга'))
+    if condition:
+        labels = {'new': 'Новый', 'used': 'Б/У', 'refurbished': 'Восстановленный'}
+        active_filters.append(('condition', labels.get(condition, condition)))
+    if price_min:
+        active_filters.append(('price_min', f'от {price_min} ₽'))
+    if price_max:
+        active_filters.append(('price_max', f'до {price_max} ₽'))
+    if in_stock:
+        active_filters.append(('in_stock', 'В наличии'))
+    if has_warranty:
+        active_filters.append(('warranty', 'С гарантией'))
+    if on_sale:
+        active_filters.append(('sale', 'Со скидкой'))
+    if make_id:
+        mk = CarMake.objects.filter(pk=make_id).first()
+        if mk:
+            active_filters.append(('make', mk.name))
+    if min_rating:
+        active_filters.append(('rating', f'Рейтинг от {min_rating}★'))
+    if with_photo:
+        active_filters.append(('photo', 'С фото'))
+    if preorder:
+        active_filters.append(('preorder', 'Под заказ'))
+
+    filter_remove_urls = {key: _catalog_without(request.GET, key) for key, _ in active_filters}
 
     return render(request, 'catalog/index.html', {
         'title': 'Каталог',
         'listings': page,
         'total': total,
-        'categories': Category.objects.filter(is_active=True),
-        'brands': Brand.objects.filter(is_active=True),
-        'car_makes': CarMake.objects.all(),
+        'categories': Category.objects.filter(is_active=True, parent__isnull=True).prefetch_related('children'),
+        'brands': Brand.objects.filter(is_active=True).order_by('name'),
+        'car_makes': CarMake.objects.all().order_by('name'),
         'filters': request.GET,
+        'active_filters': active_filters,
+        'filter_remove_urls': filter_remove_urls,
+        'has_active_filters': bool(active_filters),
+        'sort': sort,
         'zero_result': bool(q) and search_valid and total == 0,
         'search_invalid': bool(q) and not search_valid,
         'search_error': search_error,
@@ -120,6 +195,7 @@ def catalog_index(request):
         'external_offers': external_offers,
         'search_query': q,
         'price_slider_max': price_max_default,
+        'price_slider_min': price_min_default,
     })
 
 
@@ -144,7 +220,7 @@ def search_request_view(request):
     )
     messages.success(request, 'Заявка на поиск отправлена!')
     if request.user.is_authenticated:
-        return redirect('accounts:cabinet')
+        return redirect(reverse('accounts:cabinet') + '?tab=requests')
     return redirect('catalog:looking')
 
 
