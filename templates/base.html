@@ -63,7 +63,7 @@
                     {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="" class="nav__profile-img">{% endif %}
                     <span>{{ user.first_name|default:user.username }}</span>
                 </a>
-                <a href="{% url 'accounts:logout' %}">Выход</a>
+                <a href="{% url 'accounts:logout' %}" data-confirm="Выйти из аккаунта?">Выход</a>
             {% else %}
                 <a href="{% url 'accounts:login' %}">Вход</a>
                 <a href="{% url 'accounts:register' %}" class="btn btn--sm">Регистрация</a>
