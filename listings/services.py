@@ -10,6 +10,16 @@ COMPLETED_STATUSES = (
 
 MAX_MEDIA = 10
 
+from .moderation import schedule_auto_moderation
+
+
+def remoderate_listing(listing, reason='Обновление объявления'):
+    """Повторная отправка на модерацию после редактирования."""
+    listing.status = Listing.Status.PENDING
+    listing.save(update_fields=['status'])
+    ModerationQueue.objects.create(listing=listing, reason=reason)
+    schedule_auto_moderation(listing.pk)
+
 
 def save_listing_media(listing, files):
     start_order = listing.images.count()

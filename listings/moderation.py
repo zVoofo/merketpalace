@@ -33,16 +33,17 @@ def _check_text(text: str) -> tuple[bool, str]:
     return True, ''
 
 
-def check_listing(listing) -> tuple[bool, str]:
-    if not listing.title or len(listing.title.strip()) < 5:
+def check_listing(listing, is_update: bool = False) -> tuple[bool, str]:
+    if not listing.title or len(listing.title.strip()) < 3:
         return False, 'Слишком короткое название'
-    valid, err = is_valid_search_query(listing.title)
-    if not valid:
-        return False, f'Название: {err}'
-    if listing.description:
-        valid, err = is_valid_search_query(listing.description[:200])
-        if not valid and len(listing.description) > 20:
-            return False, f'Описание: {err}'
+    if not is_update:
+        valid, err = is_valid_search_query(listing.title)
+        if not valid:
+            return False, f'Название: {err}'
+        if listing.description:
+            valid, err = is_valid_search_query(listing.description[:200])
+            if not valid and len(listing.description) > 20:
+                return False, f'Описание: {err}'
     ok, reason = _check_text(listing.title)
     if not ok:
         return False, reason
@@ -73,7 +74,8 @@ def moderate_listing(listing_id: int):
     if listing.status != Listing.Status.PENDING:
         return
 
-    ok, reason = check_listing(listing)
+    is_update = 'Обновление' in (queue.reason or '')
+    ok, reason = check_listing(listing, is_update=is_update)
     if ok:
         listing.status = Listing.Status.ACTIVE
         listing.published_at = timezone.now()

@@ -99,7 +99,11 @@ def get_preview_bytes(query: str) -> tuple[bytes, str]:
     if filepath.exists() and filepath.stat().st_size > 500:
         return filepath.read_bytes(), 'cache'
 
-    for remote_fn, source in ((_wikipedia_image, 'web'), (_duckduckgo_image, 'web')):
+    for remote_fn, source in (
+        (_wikipedia_image, 'web'),
+        (lambda q: _wikipedia_image(q, 'en'), 'web'),
+        (_duckduckgo_image, 'web'),
+    ):
         remote_url = remote_fn(query)
         if remote_url:
             data = _download_bytes(remote_url)

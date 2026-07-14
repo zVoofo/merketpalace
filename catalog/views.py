@@ -146,20 +146,27 @@ def search_request_view(request):
 
 
 def looking_board(request):
-    """Вкладка «Ищу» — что ищут покупатели."""
+    """Вкладка «Ищу» — что ищут покупатели (без своих заявок)."""
     requests_qs = SearchRequest.objects.filter(
         status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS]
-    ).select_related('user', 'matched_listing').annotate(
-        responses=Count('matched_listing')
-    ).order_by('-created_at')
+    ).select_related('user', 'matched_listing').order_by('-created_at')
+    if request.user.is_authenticated:
+        requests_qs = requests_qs.exclude(user=request.user)
 
     popular = SearchQuery.objects.filter(results_count=0).values('query').annotate(
         cnt=Count('id')
     ).order_by('-cnt')[:15]
 
+    my_requests = []
+    if request.user.is_authenticated:
+        my_requests = SearchRequest.objects.filter(
+            user=request.user,
+        ).order_by('-created_at')[:20]
+
     return render(request, 'catalog/looking.html', {
         'title': 'Ищу — заявки покупателей',
         'search_requests': requests_qs,
+        'my_search_requests': my_requests,
         'popular_searches': popular,
     })
 
@@ -170,6 +177,9 @@ def respond_to_search(request, pk):
     """Продавец предлагает своё объявление на заявку."""
     from listings.models import Listing
     sr = get_object_or_404(SearchRequest, pk=pk)
+    if sr.user_id == request.user.id:
+        messages.error(request, 'Нельзя предложить товар на свою же заявку')
+        return redirect('catalog:looking')
     listing_id = request.POST.get('listing_id')
     listing = get_object_or_404(Listing, pk=listing_id, user=request.user, status=Listing.Status.ACTIVE)
     sr.matched_listing = listing

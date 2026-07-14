@@ -251,8 +251,8 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   });
 })();
 
-/* --- Заглушка для битых картинок --- */
-document.querySelectorAll('img[data-fallback]').forEach((img) => {
+/* --- Заглушка для битых картинок (только вне каталога) --- */
+document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) => {
   img.addEventListener('error', () => {
     img.src = img.dataset.fallback;
   });
@@ -294,6 +294,27 @@ document.querySelectorAll('img[data-fallback]').forEach((img) => {
   document.addEventListener('click', (e) => {
     if (!wrap.contains(e.target)) close();
   });
+
+  dropdown.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.nav-notify__dismiss');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = btn.dataset.id;
+    const row = btn.closest('.nav-notify__row');
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrf);
+    const res = await fetch('/accounts/notifications/' + id + '/delete/', { method: 'POST', body: fd });
+    if (res.ok) {
+      row?.remove();
+      if (!dropdown.querySelector('.nav-notify__row')) {
+        const empty = document.createElement('p');
+        empty.className = 'nav-notify__empty';
+        empty.textContent = 'Нет уведомлений';
+        document.getElementById('notify-list')?.appendChild(empty);
+      }
+    }
+  });
 })();
 
 /* --- Лайтбокс: смотреть фото в чате без скачивания --- */
@@ -322,4 +343,50 @@ document.querySelectorAll('img[data-fallback]').forEach((img) => {
   lbClose?.addEventListener('click', hide);
   lb.addEventListener('click', (e) => { if (e.target === lb) hide(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+})();
+
+/* --- Слайдер фото/видео в объявлении --- */
+(function initProductGallery() {
+  const gallery = document.getElementById('product-gallery');
+  if (!gallery) return;
+
+  const slides = [...gallery.querySelectorAll('.gallery-slide')];
+  const dots = [...gallery.querySelectorAll('.gallery-dot')];
+  const prev = gallery.querySelector('.gallery-nav--prev');
+  const next = gallery.querySelector('.gallery-nav--next');
+  const counter = document.getElementById('gallery-current');
+  if (slides.length <= 1) return;
+
+  let idx = 0;
+
+  const pauseVideos = () => {
+    slides.forEach((s) => s.querySelector('video')?.pause());
+  };
+
+  const show = (i) => {
+    pauseVideos();
+    idx = (i + slides.length) % slides.length;
+    slides.forEach((s, n) => s.classList.toggle('is-active', n === idx));
+    dots.forEach((d, n) => d.classList.toggle('is-active', n === idx));
+    if (counter) counter.textContent = String(idx + 1);
+  };
+
+  prev?.addEventListener('click', () => show(idx - 1));
+  next?.addEventListener('click', () => show(idx + 1));
+  dots.forEach((d) => d.addEventListener('click', () => show(parseInt(d.dataset.index, 10))));
+
+  let touchX = null;
+  gallery.addEventListener('touchstart', (e) => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+  gallery.addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) show(dx < 0 ? idx + 1 : idx - 1);
+    touchX = null;
+  }, { passive: true });
+
+  document.addEventListener('keydown', (e) => {
+    if (!gallery.matches(':hover') && document.activeElement !== document.body) return;
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  });
 })();

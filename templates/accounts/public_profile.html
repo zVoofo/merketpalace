@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    <div class="public-profile">
+        <div class="public-profile__head">
+            {% if profile_user.avatar %}
+                <img src="{{ profile_user.avatar.url }}" alt="" class="public-profile__avatar">
+            {% else %}
+                <div class="public-profile__avatar public-profile__avatar--empty">👤</div>
+            {% endif %}
+            <div class="public-profile__info">
+                <h1 class="page-title">{{ profile_user.first_name|default:profile_user.username }}</h1>
+                <p class="public-profile__username">@{{ profile_user.username }}</p>
+                {% if profile_user.is_verified %}<span class="verified">✓ Верифицирован</span>{% endif %}
+                {% if profile_user.active_role == 'seller' %}
+                    <span class="status-badge status-badge--active">Продавец</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="public-profile__stats">
+            <div class="stat">
+                <div class="stat__num">{{ listings_count }}</div>
+                <div class="stat__label">Активных объявлений</div>
+            </div>
+            <div class="stat">
+                <div class="stat__num">{{ total_listings }}</div>
+                <div class="stat__label">Всего объявлений</div>
+            </div>
+            <div class="stat">
+                <div class="stat__num">
+                    {% if rating_count %}★ {{ rating_avg|floatformat:1 }}{% else %}—{% endif %}
+                </div>
+                <div class="stat__label">Рейтинг{% if rating_count %} ({{ rating_count }} отзывов){% endif %}</div>
+            </div>
+        </div>
+
+        {% if is_own %}
+            <p style="margin-bottom:20px"><a href="{% url 'accounts:profile' %}" class="btn btn--outline btn--sm">Редактировать свой профиль</a></p>
+        {% endif %}
+
+        {% if listings %}
+            <h2 class="section-title">Объявления продавца</h2>
+            <div class="grid">
+                {% for item in listings %}
+                    <a href="{% url 'listings:detail' item.slug %}" class="card">
+                        <div class="card__img-wrap">
+                            <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                        </div>
+                        <div class="card__body">
+                            <div class="card__title">{{ item.title }}</div>
+                            <div class="card__price">{{ item.price|floatformat:0 }} ₽</div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% elif profile_user.active_role == 'seller' %}
+            <p class="empty-hint">У продавца пока нет активных объявлений</p>
+        {% else %}
+            <p class="empty-hint">Пользователь пока не размещал объявления</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

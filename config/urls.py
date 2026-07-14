@@ -8,7 +8,7 @@ from accounts.views import serve_stored_file
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
-    path('files/<uuid:file_id>/', serve_stored_file, name='stored_file'),
+    path('files/<path:file_id>/', serve_stored_file, name='stored_file'),
     path('accounts/', include('accounts.urls')),
     path('catalog/', include('catalog.urls')),
     path('listing/', include('listings.urls')),

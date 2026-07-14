@@ -56,6 +56,7 @@ def conversation_list(request):
 @login_required
 def support_chat(request):
     conv = get_or_create_support_conversation(request.user)
+    conv = Conversation.objects.select_related('buyer', 'seller').get(pk=conv.pk)
     if request.method == 'POST':
         body = request.POST.get('body', '').strip()
         attachment = request.FILES.get('attachment')
@@ -96,7 +97,10 @@ def conversation_start(request, listing_id):
 
 @login_required
 def conversation_detail(request, pk):
-    conv = get_object_or_404(Conversation, pk=pk, is_support=False)
+    conv = get_object_or_404(
+        Conversation.objects.select_related('listing', 'buyer', 'seller'),
+        pk=pk, is_support=False,
+    )
     if request.user not in (conv.buyer, conv.seller):
         return render(request, 'errors/403.html', {'title': 'Доступ запрещён'}, status=403)
     if request.method == 'POST':

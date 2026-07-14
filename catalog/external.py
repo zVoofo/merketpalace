@@ -37,10 +37,10 @@ def _duckduckgo_image(query: str) -> str | None:
     return None
 
 
-def _wikipedia_image(query: str) -> str | None:
+def _wikipedia_image(query: str, lang: str = 'ru') -> str | None:
     q = urllib.parse.quote(query.strip())
     data = _fetch_json(
-        f'https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch={q}'
+        f'https://{lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch={q}'
         f'&prop=pageimages&piprop=thumbnail&pithumbsize=500&format=json&gsrlimit=1'
     )
     if not data:
@@ -55,6 +55,7 @@ def _wikipedia_image(query: str) -> str | None:
 def get_external_offers(query: str) -> list[ExternalOffer]:
     q = query.strip()
     encoded = urllib.parse.quote(q)
+    preview_url = f'/catalog/preview/?q={encoded}'
     sources = [
         ('Avito', f'https://www.avito.ru/all?q={encoded}'),
         ('Youla', f'https://youla.ru/search?q={encoded}'),
@@ -63,6 +64,6 @@ def get_external_offers(query: str) -> list[ExternalOffer]:
         ('Auto.ru', f'https://auto.ru/parts/all/?query={encoded}'),
     ]
     return [
-        ExternalOffer(source=name, title=f'{q} — на {name}', url=url, price=None, image=None)
+        ExternalOffer(source=name, title=f'{q} — на {name}', url=url, price=None, image=preview_url)
         for name, url in sources
     ]

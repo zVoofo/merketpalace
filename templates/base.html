@@ -32,13 +32,16 @@
                     </button>
                     <div class="nav-notify__dropdown" id="notify-dropdown" hidden>
                         <div class="nav-notify__head">Уведомления</div>
-                        <div class="nav-notify__list">
+                        <div class="nav-notify__list" id="notify-list">
                             {% for n in header_notifications %}
-                                <a href="{{ n.link|default:'#' }}" class="nav-notify__item{% if not n.is_read %} nav-notify__item--new{% endif %}">
-                                    <strong>{{ n.title }}</strong>
-                                    {% if n.body %}<span>{{ n.body }}</span>{% endif %}
-                                    <time>{{ n.created_at|timesince }} назад</time>
-                                </a>
+                                <div class="nav-notify__row" data-notify-id="{{ n.pk }}">
+                                    <a href="{{ n.link|default:'#' }}" class="nav-notify__item{% if not n.is_read %} nav-notify__item--new{% endif %}">
+                                        <strong>{{ n.title }}</strong>
+                                        {% if n.body %}<span>{{ n.body }}</span>{% endif %}
+                                        <time>{{ n.created_at|timesince }} назад</time>
+                                    </a>
+                                    <button type="button" class="nav-notify__dismiss" data-id="{{ n.pk }}" title="Удалить" aria-label="Удалить уведомление">×</button>
+                                </div>
                             {% empty %}
                                 <p class="nav-notify__empty">Нет уведомлений</p>
                             {% endfor %}

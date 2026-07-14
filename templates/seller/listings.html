@@ -1,22 +1,57 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="container">
-    <h1>Мои объявления</h1>
-    <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
-    <table class="table">
-        <thead><tr><th>Название</th><th>Цена</th><th>Остаток</th><th>Статус</th><th></th></tr></thead>
-        {% for l in listings %}
-            <tr>
-                <td><a href="{% url 'listings:detail' l.slug %}">{{ l.title }}</a></td>
-                <td>{{ l.price|floatformat:0 }} ₽</td>
-                <td>{{ l.quantity }}</td>
-                <td>{{ l.get_status_display }}</td>
-                <td><a href="{% url 'listings:edit' l.pk %}">Редактировать</a></td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="5">Нет объявлений</td></tr>
-        {% endfor %}
-    </table>
-</div>
-{% endblock %}
+{% extends 'base.html' %}
+{% load static listing_extras %}
+
+{% block content %}
+<div class="container">
+    <h1>Мои объявления</h1>
+    <a href="{% url 'listings:create' %}" class="btn" style="margin:16px 0">+ Создать</a>
+
+    <div class="listings-table-wrap">
+        <table class="table table--listings">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Цена</th>
+                    <th>Остаток</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in listings %}
+                <tr>
+                    <td>
+                        {% if l.status == 'active' %}
+                            <a href="{% url 'listings:detail' l.slug %}">{{ l.title }}</a>
+                        {% else %}
+                            <strong>{{ l.title }}</strong>
+                        {% endif %}
+                        {% if l.status == 'rejected' and rejection_reasons.l.id %}
+                            <div class="listing-reject-reason">{{ rejection_reasons.l.id }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ l.price|floatformat:0 }} ₽</td>
+                    <td>{{ l.quantity }}</td>
+                    <td><span class="status-badge status-badge--{{ l.status }}">{{ l.get_status_display }}</span></td>
+                    <td class="listing-actions">
+                        <a href="{% url 'listings:edit' l.pk %}" class="btn btn--sm btn--outline">Редактировать</a>
+                        {% if l.status == 'active' %}
+                            <form method="POST" action="{% url 'listings:unpublish' l.pk %}" class="inline-form" onsubmit="return confirm('Снять с публикации?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn--sm btn--outline">Снять</button>
+                            </form>
+                        {% endif %}
+                        <form method="POST" action="{% url 'listings:delete' l.pk %}" class="inline-form" onsubmit="return confirm('Удалить объявление навсегда?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn--sm btn--danger">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">Нет объявлений</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

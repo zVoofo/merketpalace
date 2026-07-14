@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.views.decorators.http import require_POST
 from .forms import RegisterForm, LoginForm, ProfileForm, OrganizationForm, VerifyCodeForm
 from .verification import send_email_verification, verify_email_code, send_phone_verification, verify_phone_code
@@ -105,6 +105,38 @@ def social_login(request, provider):
     login(request, user)
     messages.success(request, f'Вход через {provider.upper()} выполнен')
     return redirect('home')
+
+
+def public_profile_view(request, username):
+    from django.db.models import Avg, Count
+    from listings.models import Listing, Review
+
+    profile_user = get_object_or_404(User, username=username)
+    active_listings = Listing.objects.filter(
+        user=profile_user, status=Listing.Status.ACTIVE,
+    ).prefetch_related('images').order_by('-published_at')[:12]
+
+    listings_count = Listing.objects.filter(
+        user=profile_user, status=Listing.Status.ACTIVE,
+    ).count()
+    total_listings = Listing.objects.filter(user=profile_user).exclude(
+        status=Listing.Status.ARCHIVED,
+    ).count()
+
+    reviews_agg = Review.objects.filter(
+        seller=profile_user, status=Review.Status.APPROVED,
+    ).aggregate(avg=Avg('rating'), cnt=Count('id'))
+
+    return render(request, 'accounts/public_profile.html', {
+        'title': profile_user.full_name,
+        'profile_user': profile_user,
+        'listings_count': listings_count,
+        'total_listings': total_listings,
+        'rating_avg': reviews_agg['avg'],
+        'rating_count': reviews_agg['cnt'] or 0,
+        'listings': active_listings,
+        'is_own': request.user.is_authenticated and request.user.pk == profile_user.pk,
+    })
 
 
 @login_required
@@ -283,6 +315,14 @@ def panel_verify_user(request, pk):
 
 @login_required
 @require_POST
+def notifications_delete(request, pk):
+    from .models import Notification
+    Notification.objects.filter(pk=pk, user=request.user).delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
 def notifications_read(request):
     from .models import Notification
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
@@ -290,12 +330,26 @@ def notifications_read(request):
 
 
 def serve_stored_file(request, file_id):
+    import uuid
+    from pathlib import Path
     from .models import StoredFile
-    obj = get_object_or_404(StoredFile, pk=file_id)
-    response = HttpResponse(bytes(obj.data), content_type=obj.content_type)
-    response['Content-Length'] = obj.size
-    if obj.content_type.startswith('image/') or obj.content_type.startswith('video/'):
-        response['Content-Disposition'] = 'inline'
-    else:
-        response['Content-Disposition'] = f'inline; filename="{obj.original_name}"'
-    return response
+
+    try:
+        uid = uuid.UUID(str(file_id))
+        obj = StoredFile.objects.filter(pk=uid).first()
+        if obj:
+            response = HttpResponse(bytes(obj.data), content_type=obj.content_type)
+            response['Content-Length'] = obj.size
+            if obj.content_type.startswith('image/') or obj.content_type.startswith('video/'):
+                response['Content-Disposition'] = 'inline'
+            else:
+                response['Content-Disposition'] = f'inline; filename="{obj.original_name}"'
+            return response
+    except (ValueError, TypeError, AttributeError):
+        pass
+
+    disk_path = Path(settings.MEDIA_ROOT) / file_id
+    if disk_path.is_file():
+        return FileResponse(disk_path.open('rb'), as_attachment=False)
+
+    raise Http404

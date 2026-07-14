@@ -8,6 +8,44 @@
     {% else %}
         <p style="margin-bottom:12px"><a href="{% url 'chat:index' %}">← Все сообщения</a> · <strong>Поддержка</strong></p>
     {% endif %}
+
+    {% if is_support %}
+        <div class="chat-participants chat-participants--support">
+            <div class="chat-participant chat-participant--static">
+                <div class="chat-participant__avatar chat-participant__avatar--support">💬</div>
+                <div>
+                    <strong>Поддержка MarketPlace</strong>
+                    <span class="chat-participant__role">Помощник</span>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="chat-participants">
+            <a href="{% url 'accounts:public_profile' conv.buyer.username %}" class="chat-participant{% if conv.buyer == user %} chat-participant--self{% endif %}">
+                {% if conv.buyer.avatar %}
+                    <img src="{{ conv.buyer.avatar.url }}" alt="" class="chat-participant__avatar">
+                {% else %}
+                    <div class="chat-participant__avatar chat-participant__avatar--empty">{{ conv.buyer.first_name|default:conv.buyer.username|slice:":1"|upper }}</div>
+                {% endif %}
+                <div>
+                    <strong>{{ conv.buyer.first_name|default:conv.buyer.username }}</strong>
+                    <span class="chat-participant__role">Покупатель</span>
+                </div>
+            </a>
+            <a href="{% url 'accounts:public_profile' conv.seller.username %}" class="chat-participant{% if conv.seller == user %} chat-participant--self{% endif %}">
+                {% if conv.seller.avatar %}
+                    <img src="{{ conv.seller.avatar.url }}" alt="" class="chat-participant__avatar">
+                {% else %}
+                    <div class="chat-participant__avatar chat-participant__avatar--empty">{{ conv.seller.first_name|default:conv.seller.username|slice:":1"|upper }}</div>
+                {% endif %}
+                <div>
+                    <strong>{{ conv.seller.first_name|default:conv.seller.username }}</strong>
+                    <span class="chat-participant__role">Продавец</span>
+                </div>
+            </a>
+        </div>
+    {% endif %}
+
     <div class="chat-box" id="chat-box" data-csrf="{{ csrf_token }}">
         <div class="chat-messages" id="chat-messages">
             {% for m in chat_messages %}
@@ -16,22 +54,43 @@
                      data-msg-id="{{ m.pk }}"
                      data-own="{% if m.sender == user %}1{% else %}0{% endif %}"
                      data-has-attachment="{% if m.attachment %}1{% else %}0{% endif %}">
-                    <div class="chat-msg__bubble">
-                        {% if m.attachment %}
-                            {% if m.attachment_type == 'image' %}
-                                <img src="{{ m.attachment.url }}" alt="" class="chat-attach-img chat-lightbox-trigger" role="button" tabindex="0" title="Нажмите, чтобы увеличить">
-                            {% elif m.attachment_type == 'video' %}
-                                <video src="{{ m.attachment.url }}" controls class="chat-attach-video" playsinline></video>
+                    {% if is_support and m.sender.username == 'support' %}
+                        <div class="chat-msg__avatar-link chat-msg__avatar-link--static">
+                            <div class="chat-msg__avatar chat-msg__avatar--support">💬</div>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'accounts:public_profile' m.sender.username %}" class="chat-msg__avatar-link">
+                            {% if m.sender.avatar %}
+                                <img src="{{ m.sender.avatar.url }}" alt="" class="chat-msg__avatar">
                             {% else %}
-                                <a href="{{ m.attachment.url }}" target="_blank" rel="noopener" class="chat-attach-file">
-                                    <span class="chat-attach-file__icon">📎</span>
-                                    <span>{{ m.attachment_name|default:"Файл" }}</span>
-                                </a>
+                                <div class="chat-msg__avatar chat-msg__avatar--empty">{{ m.sender.first_name|default:m.sender.username|slice:":1"|upper }}</div>
                             {% endif %}
-                            <span class="chat-attach-label">✓ Вложение загружено</span>
+                        </a>
+                    {% endif %}
+                    <div class="chat-msg__content">
+                        {% if is_support and m.sender.username == 'support' %}
+                            <span class="chat-msg__name">Поддержка</span>
+                        {% else %}
+                            <a href="{% url 'accounts:public_profile' m.sender.username %}" class="chat-msg__name">
+                                {{ m.sender.first_name|default:m.sender.username }}
+                            </a>
                         {% endif %}
-                        {% if m.body %}<span class="chat-msg__text">{{ m.body }}</span>{% endif %}
-                        {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
+                        <div class="chat-msg__bubble">
+                            {% if m.attachment %}
+                                {% if m.attachment_type == 'image' %}
+                                    <img src="{{ m.attachment.url }}" alt="" class="chat-attach-img chat-lightbox-trigger" role="button" tabindex="0" title="Нажмите, чтобы увеличить">
+                                {% elif m.attachment_type == 'video' %}
+                                    <video src="{{ m.attachment.url }}" controls class="chat-attach-video" playsinline></video>
+                                {% else %}
+                                    <a href="{{ m.attachment.url }}" target="_blank" rel="noopener" class="chat-attach-file">
+                                        <span class="chat-attach-file__icon">📎</span>
+                                        <span>{{ m.attachment_name|default:"Файл" }}</span>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                            {% if m.body %}<span class="chat-msg__text">{{ m.body }}</span>{% endif %}
+                            {% if m.edited_at %}<span class="chat-msg__edited">изменено</span>{% endif %}
+                        </div>
                     </div>
                     {% if m.sender == user and not m.attachment %}
                         <button type="button" class="chat-msg__menu-btn" data-msg-id="{{ m.pk }}" title="Действия">⋯</button>
