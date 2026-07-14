@@ -407,6 +407,23 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   });
 })();
 
+/* --- Поддержка: быстрые вопросы --- */
+(function initSupportQuick() {
+  const grid = document.getElementById('support-quick');
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('chat-body');
+  if (!grid || !form || !input) return;
+
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.support-quick__btn');
+    if (!btn) return;
+    const q = btn.dataset.question;
+    if (!q) return;
+    input.value = q;
+    form.requestSubmit();
+  });
+})();
+
 /* --- Лайтбокс: смотреть фото в чате без скачивания --- */
 (function initLightbox() {
   const lb = document.getElementById('img-lightbox');

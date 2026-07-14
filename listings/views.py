@@ -2,9 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from django.db.models import Count
 from orders.models import OrderItem
-from catalog.models import Category, Brand, SearchQuery, SearchRequest
+from catalog.models import Category, Brand, SearchRequest
 from .models import Listing, ModerationQueue, Review
 from .forms import ListingForm, ReviewForm, validate_media_files
 from .services import save_listing_media, user_can_review, update_listing_rating, remoderate_listing
@@ -142,9 +141,6 @@ def review_create(request, slug):
 def seller_dashboard(request):
     listings = Listing.objects.filter(user=request.user)
     orders_count = request.user.sales_received.count() if hasattr(request.user, 'sales_received') else 0
-    failed = SearchQuery.objects.filter(results_count=0).values('query').annotate(
-        cnt=Count('id')
-    ).order_by('-cnt')[:10]
     open_looking_count = SearchRequest.objects.filter(
         status__in=[SearchRequest.Status.NEW, SearchRequest.Status.IN_PROGRESS],
     ).exclude(user=request.user).count()
@@ -159,7 +155,6 @@ def seller_dashboard(request):
         'active_count': listings.filter(status=Listing.Status.ACTIVE).count(),
         'archived_count': listings.filter(status=Listing.Status.ARCHIVED).count(),
         'total_views': sum(l.views_count for l in listings),
-        'failed_searches': failed,
         'orders_count': orders_count,
         'open_looking_count': open_looking_count,
         'incoming_count': incoming_count,

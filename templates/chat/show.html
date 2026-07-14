@@ -101,6 +101,15 @@
                 {% endif %}
             {% endfor %}
         </div>
+        {% if is_support and support_quick_questions %}
+        <div class="support-quick" id="support-quick">
+            <p class="support-quick__label">Частые вопросы:</p>
+            <div class="support-quick__grid">
+                {% for q in support_quick_questions %}
+                    <button type="button" class="support-quick__btn" data-question="{{ q }}">{{ q }}</button>
+                {% endfor %}
+            </div>
+        </div>
         <form method="POST" class="chat-input" id="chat-form" enctype="multipart/form-data">
             {% csrf_token %}
             <label class="chat-attach-btn" title="Прикрепить файл">
@@ -113,7 +122,7 @@
             </div>
             <button type="submit" class="btn btn--sm">Отправить</button>
         </form>
-        <p class="chat-hint">ПКМ или кнопка ⋯ — редактировать или удалить своё сообщение; фото и видео можно удалить</p>
+        <p class="chat-hint">{% if is_support %}Нажмите вопрос выше или напишите свой — бот ответит сразу{% else %}ПКМ или кнопка ⋯ — редактировать или удалить своё сообщение{% endif %}</p>
     </div>
     <div id="chat-context-menu" class="chat-context-menu" hidden>
         <button type="button" data-action="edit">✏️ Редактировать</button>

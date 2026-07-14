@@ -156,10 +156,6 @@ def looking_board(request):
     if request.user.is_authenticated:
         requests_qs = requests_qs.exclude(user=request.user)
 
-    popular = SearchQuery.objects.filter(results_count=0).values('query').annotate(
-        cnt=Count('id')
-    ).order_by('-cnt')[:15]
-
     seller_listings = []
     if request.user.is_authenticated and request.user.active_role == 'seller':
         from listings.models import Listing
@@ -171,7 +167,6 @@ def looking_board(request):
         'title': 'Заявки покупателей',
         'search_requests': requests_qs,
         'seller_listings': seller_listings,
-        'popular_searches': popular,
     })
 
 

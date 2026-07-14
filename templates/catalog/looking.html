@@ -41,16 +41,5 @@
             <p class="empty-hint">Новых заявок нет. Загляните позже.</p>
         {% endfor %}
     </section>
-
-    <section class="looking-section">
-        <h2 class="section-title">Популярные запросы без результата</h2>
-        <div class="cats">
-            {% for s in popular_searches %}
-                <a href="{% url 'catalog:index' %}?q={{ s.query|urlencode }}" class="cat-chip">{{ s.query }} ({{ s.cnt }})</a>
-            {% empty %}
-                <span class="empty-hint">Данных пока нет</span>
-            {% endfor %}
-        </div>
-    </section>
 </div>
 {% endblock %}

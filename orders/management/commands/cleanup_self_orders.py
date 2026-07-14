@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import transaction, models
 from django.db.models import F
 from listings.models import Listing
 from orders.models import Order, CartItem
@@ -11,7 +11,10 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self_orders = Order.objects.filter(buyer_id=F('seller_id'))
+        self_orders = Order.objects.filter(
+            models.Q(buyer_id=F('seller_id'))
+            | models.Q(items__listing__user_id=F('buyer_id')),
+        ).distinct()
         count = self_orders.count()
 
         for order in self_orders.prefetch_related('items__listing'):

@@ -669,6 +669,20 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 .status-badge--paid,.status-badge--completed,.status-badge--delivered{background:var(--success-bg);color:var(--success-text)}
 .status-badge--pending,.status-badge--processing{background:var(--warning-bg);color:var(--warning-text)}
 .status-badge--cancelled{background:var(--error-bg);color:var(--error-text)}
+.status-badge--shipped{background:var(--primary-light);color:var(--primary)}
+.order-actions{margin:20px 0;padding:18px;background:var(--bg-soft);border-radius:var(--radius-sm);border:1px solid var(--border-light)}
+.order-actions__hint{margin:10px 0 0;font-size:.85rem;color:var(--muted)}
+.order-items-list{margin:12px 0 0;padding-left:20px}
+.order-review{margin-top:28px;padding-top:20px;border-top:1px solid var(--border-light)}
+.support-quick{padding:14px 16px;background:var(--bg-soft);border-top:1px solid var(--border-light)}
+.support-quick__label{margin:0 0 10px;font-size:.82rem;color:var(--muted);font-weight:600}
+.support-quick__grid{display:flex;flex-wrap:wrap;gap:8px}
+.support-quick__btn{
+  padding:8px 14px;border:1px solid var(--border);border-radius:20px;
+  background:var(--card);font-family:inherit;font-size:.8rem;font-weight:600;
+  color:var(--text-soft);cursor:pointer;transition:all .15s;
+}
+.support-quick__btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
 .product__own-notice{
   padding:14px 16px;border-radius:var(--radius-sm);background:var(--warning-bg);
   border:1px solid #e8d4a8;margin-bottom:12px;

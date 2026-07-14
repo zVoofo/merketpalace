@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from listings.models import Listing
 from accounts.notifications import notify
 from .models import Conversation, Message
-from .support_bot import get_or_create_support_conversation, send_support_bot_reply
+from .support_bot import get_or_create_support_conversation, send_support_bot_reply, QUICK_QUESTIONS
 
 
 def _detect_attachment_type(uploaded_file) -> str:
@@ -71,6 +71,8 @@ def support_chat(request):
             conv.save(update_fields=['last_msg_at'])
             if body:
                 send_support_bot_reply(conv, body)
+            elif attachment:
+                send_support_bot_reply(conv, 'вложение файл')
         return redirect('chat:support')
     conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
     return render(request, 'chat/show.html', {
@@ -79,6 +81,7 @@ def support_chat(request):
         'listing': None,
         'chat_messages': conv.messages.select_related('sender').all(),
         'is_support': True,
+        'support_quick_questions': QUICK_QUESTIONS,
     })
 
 

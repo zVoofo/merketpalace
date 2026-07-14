@@ -2,8 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
+from django.views.decorators.http import require_POST
 from django import forms
 from listings.models import Listing
+from listings.forms import ReviewForm
+from listings.services import user_can_review, update_listing_rating
+from accounts.notifications import notify
 from accounts.wallet_service import get_wallet, pay_from_wallet
 from .models import Cart, CartItem, Order, OrderItem
 from .context_processors import get_or_create_cart
@@ -210,7 +214,69 @@ def order_list(request):
 
 @login_required
 def order_detail(request, pk):
-    order = get_object_or_404(Order, pk=pk)
+    order = get_object_or_404(
+        Order.objects.select_related('buyer', 'seller').prefetch_related('items__listing'),
+        pk=pk,
+    )
     if order.buyer != request.user and order.seller != request.user and not request.user.is_staff:
         return render(request, 'errors/403.html', {'title': 'Доступ запрещён'}, status=403)
-    return render(request, 'orders/detail.html', {'title': f'Заказ {order.order_number}', 'order': order})
+
+    listing = order.items.first().listing if order.items.exists() else None
+    can_review = False
+    review_block_reason = ''
+    review_form = None
+    if request.user == order.buyer and listing:
+        can_review, review_block_reason = user_can_review(request.user, listing)
+        if can_review:
+            review_form = ReviewForm()
+
+    return render(request, 'orders/detail.html', {
+        'title': f'Заказ {order.order_number}',
+        'order': order,
+        'listing': listing,
+        'can_review': can_review,
+        'review_block_reason': review_block_reason,
+        'review_form': review_form,
+    })
+
+
+@login_required
+@require_POST
+def order_ship(request, pk):
+    """Продавец отмечает отправку заказа."""
+    order = get_object_or_404(Order, pk=pk, seller=request.user)
+    if order.status not in (Order.Status.PAID, Order.Status.PROCESSING):
+        messages.error(request, 'Отправить можно только оплаченный заказ')
+        return redirect('orders:detail', pk=pk)
+    order.status = Order.Status.SHIPPED
+    order.save(update_fields=['status'])
+    notify(
+        order.buyer,
+        'order',
+        f'Заказ {order.order_number} отправлен',
+        'Продавец отправил товар. Когда получите — нажмите «Товар пришёл» в заказе.',
+        f'/orders/{order.pk}/',
+    )
+    messages.success(request, 'Заказ отмечен как отправленный')
+    return redirect('orders:detail', pk=pk)
+
+
+@login_required
+@require_POST
+def order_complete(request, pk):
+    """Покупатель подтверждает получение — заказ завершён, можно оставить отзыв."""
+    order = get_object_or_404(Order, pk=pk, buyer=request.user)
+    if order.status not in (Order.Status.SHIPPED, Order.Status.DELIVERED):
+        messages.error(request, 'Подтвердить можно после отправки продавцом')
+        return redirect('orders:detail', pk=pk)
+    order.status = Order.Status.COMPLETED
+    order.save(update_fields=['status'])
+    notify(
+        order.seller,
+        'order',
+        f'Заказ {order.order_number} завершён',
+        f'Покупатель получил товар. Сумма: {int(order.total)} ₽',
+        f'/orders/{order.pk}/',
+    )
+    messages.success(request, 'Заказ завершён! Теперь можно оставить отзыв продавцу.')
+    return redirect('orders:detail', pk=pk)
