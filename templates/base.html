@@ -8,14 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=5">
 </head>
 <body>
 <header class="header">
     <div class="container header__inner">
         <a href="{% url 'home' %}" class="logo">Market<span>Place</span></a>
         <form class="search-bar" action="{% url 'catalog:index' %}" method="GET">
-            <input type="search" name="q" placeholder="Поиск по названию, артикулу..." value="{{ request.GET.q|default:'' }}">
+            <input type="search" name="q" placeholder="Поиск..." value="{{ request.GET.q|default:'' }}">
             <button type="submit" aria-label="Искать">🔍</button>
         </form>
         <nav class="nav">

@@ -13,7 +13,7 @@
                 <p class="looking-widget__query">Вы искали: «{{ sr.query }}»</p>
                 <p class="looking-widget__seller"><strong>{{ sr.matched_seller.first_name|default:sr.matched_seller.username }}</strong> предложил:</p>
                 <a href="{% url 'listings:detail' sr.matched_listing.slug %}" class="looking-widget__offer">
-                    <img src="{% listing_image_url sr.matched_listing %}" alt="" width="72" height="72" onerror="this.src='{% static 'img/no-photo.svg' %}'">
+                    <img src="{% listing_image_url sr.matched_listing %}" alt="" class="looking-widget__thumb" width="72" height="72" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                     <span>
                         <strong>{{ sr.matched_listing.title }}</strong>
                         <span class="looking-widget__price">{{ sr.matched_listing.price|floatformat:0 }} ₽</span>

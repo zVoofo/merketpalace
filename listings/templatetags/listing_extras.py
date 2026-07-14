@@ -8,9 +8,9 @@ PLACEHOLDER = 'img/no-photo.svg'
 
 @register.simple_tag
 def listing_image_url(listing):
-    thumb = listing.thumb
-    if thumb:
-        return thumb
+    img = listing.images.filter(media_type='image').first()
+    if img and img.file:
+        return img.file.url
     return static(PLACEHOLDER)
 
 

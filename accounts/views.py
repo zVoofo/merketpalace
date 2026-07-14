@@ -228,7 +228,9 @@ def profile_view(request):
             user=request.user,
             matched_listing__isnull=False,
             status=SearchRequest.Status.FOUND,
-        ).select_related('matched_listing', 'matched_seller').order_by('-created_at')[:10]
+        ).select_related('matched_listing', 'matched_seller').prefetch_related(
+            'matched_listing__images',
+        ).order_by('-created_at')[:10]
 
     return render(request, 'accounts/profile.html', {
         'title': 'Профиль', 'form': form, 'org_form': org_form,
