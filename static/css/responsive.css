@@ -1,6 +1,6 @@
 /* Широкий экран: полное меню в строку */
 @media(min-width:1500px){
-  .header__inner > .nav{display:flex!important;position:static!important;flex-direction:row!important;padding:0!important;background:transparent!important;box-shadow:none!important;border:none!important}
+  .header__tools > .nav{display:flex!important;position:static!important;flex-direction:row!important;padding:0!important;background:transparent!important;box-shadow:none!important;border:none!important}
   .burger{display:none!important}
 }
 
@@ -12,8 +12,9 @@
     grid-template-columns:auto minmax(0,1fr) auto;
     position:relative;
   }
+  .header__tools{display:contents}
   .header__inner > .logo{grid-column:1;grid-row:1}
-  .header__inner > .search-bar{
+  .header__tools > .search-bar{
     grid-column:2;
     grid-row:1;
     max-width:none;
@@ -21,7 +22,7 @@
     width:100%;
   }
   .header__inner > .burger{grid-column:3;grid-row:1;margin-left:0}
-  .header__inner > .nav{
+  .header__tools > .nav{
     display:none;
     position:absolute;top:100%;left:0;right:0;
     grid-column:1/-1;
@@ -30,7 +31,7 @@
     box-shadow:var(--shadow);z-index:101;overflow:visible;
     gap:4px;
   }
-  .header__inner > .nav.open{display:flex}
+  .header__tools > .nav.open{display:flex}
   .nav__section--links{border-left:none;padding-left:0;margin-left:0}
   .nav__section{flex-direction:column;align-items:stretch;gap:4px;width:100%;border:none;padding:0}
   .nav__section--icons{
@@ -52,23 +53,25 @@
     grid-template-columns:auto minmax(0,1fr) auto;
     grid-template-rows:auto auto;
   }
+  .header__tools{display:contents}
   .header__inner > .logo{grid-column:1;grid-row:1}
   .header__inner > .burger{grid-column:3;grid-row:1}
-  .header__inner > .search-bar{
+  .header__tools > .search-bar{
     grid-column:1/-1;
     grid-row:2;
     max-width:none;
     min-width:0;
     width:100%;
   }
-  .nav{
+  .header__tools > .nav{
     display:none;position:absolute;top:100%;left:0;right:0;
     background:var(--card);flex-direction:column;align-items:stretch;
     padding:16px 20px;border-bottom:1px solid var(--border-light);
     box-shadow:var(--shadow);z-index:101;overflow:visible;
     gap:4px;
   }
-  .nav.open{display:flex}
+  .header__tools > .nav.open{display:flex}
+  .nav__section--links{border-left:none;padding-left:0;margin-left:0}
   .nav__section{flex-direction:column;align-items:stretch;gap:4px;width:100%;border:none;padding:0}
   .nav__section--icons{
     flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:8px;

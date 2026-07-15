@@ -9,12 +9,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}?v=8">
 </head>
 <body>
 <header class="header">
-    <div class="header__inner">
+    <div class="container header__inner">
         <a href="{% url 'home' %}" class="logo"><img src="{% static 'img/favicon.svg' %}" alt="" class="logo__icon" width="28" height="28">Market<span>Place</span></a>
+        <div class="header__tools">
         <form class="search-bar" action="{% url 'catalog:index' %}" method="GET">
             <input type="search" name="q" placeholder="Поиск..." value="{{ request.GET.q|default:'' }}">
             <button type="submit" aria-label="Искать">🔍</button>
@@ -88,6 +89,7 @@
             </div>
             {% endif %}
         </nav>
+        </div>
         <button class="burger" id="burger" aria-label="Меню">☰</button>
     </div>
 </header>

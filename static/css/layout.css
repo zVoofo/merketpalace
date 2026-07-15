@@ -10,21 +10,28 @@
 .header__inner{
   display:flex;
   align-items:center;
-  gap:12px 18px;
-  max-width:100%;
-  margin:0 auto;
-  padding:10px clamp(16px,2.5vw,40px);
+  gap:16px;
+  padding-top:10px;
+  padding-bottom:10px;
   min-width:0;
   box-sizing:border-box;
 }
 .header__inner > .logo{flex-shrink:0}
-.header__inner > .search-bar{
+.header__tools{
+  display:flex;
+  align-items:center;
+  gap:12px 16px;
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+}
+.header__tools > .search-bar{
   flex-shrink:0;
   width:220px;
   min-width:200px;
   max-width:240px;
 }
-.header__inner > .nav{
+.header__tools > .nav{
   flex:0 1 auto;
   min-width:0;
 }
