@@ -6,6 +6,13 @@ register = template.Library()
 PLACEHOLDER = 'img/no-photo.svg'
 
 
+@register.filter
+def listing_has_image(listing) -> bool:
+    if not listing:
+        return False
+    return listing.images.filter(media_type='image').exists()
+
+
 @register.simple_tag
 def listing_image_url(listing):
     if not listing:

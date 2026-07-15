@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django import forms
+from django.templatetags.static import static
 from listings.models import Listing
 from listings.forms import ReviewForm
 from listings.services import user_can_review, update_listing_rating
@@ -13,6 +14,18 @@ from accounts.wallet_service import get_wallet, pay_from_wallet, refund_to_walle
 from .models import Cart, CartItem, Order, OrderItem
 from .context_processors import get_or_create_cart
 from .cart_service import merge_session_cart_into_user
+
+
+def _listing_image_url(listing) -> str:
+    if not listing:
+        return static('img/no-photo.svg')
+    img = listing.images.filter(media_type='image').first()
+    if img and img.file:
+        try:
+            return img.file.url
+        except Exception:
+            pass
+    return static('img/no-photo.svg')
 
 
 def _cart_json(cart):
@@ -124,7 +137,10 @@ def cart_add(request):
                 return JsonResponse({'ok': False, 'error': 'Не указан товар'}, status=400)
             messages.error(request, 'Не указан товар')
             return redirect('cart')
-        listing = get_object_or_404(Listing, pk=int(listing_id), status=Listing.Status.ACTIVE)
+        listing = get_object_or_404(
+            Listing.objects.prefetch_related('images'),
+            pk=int(listing_id), status=Listing.Status.ACTIVE,
+        )
         if is_own_listing(request.user, listing):
             err = 'Нельзя заказать своё объявление'
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -161,6 +177,8 @@ def cart_add(request):
                     'title': listing.title,
                     'listing_id': listing.pk,
                     'slug': listing.slug,
+                    'image_url': _listing_image_url(listing),
+                    'unit_price': float(listing.price),
                     'message': 'Товар добавлен в корзину',
                 })
                 return JsonResponse(data)

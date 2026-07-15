@@ -47,8 +47,8 @@
                     <div class="grid">
                         {% for item in listings %}
                             <a href="{% url 'listings:detail' item.slug %}" class="card{% if item.status != 'active' %} card--muted{% endif %}">
-                                <div class="card__img-wrap">
-                                    <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                <div class="card__img-wrap{% if not item|listing_has_image %} card__img-wrap--placeholder{% endif %}">
+                                    <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}';this.closest('.card__img-wrap')?.classList.add('card__img-wrap--placeholder')">
                                     {% if item.status != 'active' %}
                                         <span class="card__status">{{ status_labels|dict_get:item.status|default:item.status }}</span>
                                     {% endif %}

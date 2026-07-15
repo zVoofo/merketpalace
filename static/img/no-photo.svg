@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-  <rect fill="#e2e8f0" width="400" height="300"/>
-  <rect x="130" y="85" width="140" height="100" rx="8" fill="#cbd5e1"/>
-  <circle cx="165" cy="120" r="14" fill="#94a3b8"/>
-  <path d="M130 175 L175 135 L210 160 L240 130 L270 175 Z" fill="#94a3b8"/>
-  <text x="200" y="220" text-anchor="middle" fill="#64748b" font-family="system-ui,sans-serif" font-size="16">5B D>B></text>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" role="img" aria-label="Нет фото">
+  <defs>
+    <linearGradient id="ph-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f3efe8"/>
+      <stop offset="100%" stop-color="#efe9e1"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#ph-bg)"/>
+  <rect x="118" y="72" width="164" height="128" rx="14" fill="#ebe5dc" stroke="#ddd5c9" stroke-width="2"/>
+  <circle cx="162" cy="112" r="18" fill="#b4533c" opacity="0.28"/>
+  <path d="M118 186 L162 138 L206 162 L248 118 L282 186 Z" fill="#b4533c" opacity="0.22"/>
+  <text x="200" y="232" text-anchor="middle" fill="#7d766d" font-family="Manrope, system-ui, sans-serif" font-size="17" font-weight="600">Нет фото</text>
 </svg>

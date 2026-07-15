@@ -1143,6 +1143,7 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   if (!toast) return;
 
   const fmtMoney = (n) => `${Math.round(Number(n) || 0).toLocaleString('ru-RU')}\u00a0₽`;
+  const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value
     || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 
@@ -1161,30 +1162,54 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   let lastData = null;
 
   const hide = () => {
-    toast.setAttribute('hidden', '');
-    toast.innerHTML = '';
-    lastData = null;
+    clearTimeout(hideTimer);
+    toast.classList.remove('is-visible');
+    setTimeout(() => {
+      if (!toast.classList.contains('is-visible')) {
+        toast.setAttribute('hidden', '');
+        toast.innerHTML = '';
+        lastData = null;
+      }
+    }, 320);
   };
 
   const show = (data) => {
     if (!data?.ok) return;
     lastData = data;
     clearTimeout(hideTimer);
+
     const item = (data.items || []).find((i) => i.listing_id === data.listing_id);
     const qty = item?.quantity || 1;
-    const sum = item?.subtotal || 0;
+    const sum = item?.subtotal || data.unit_price || 0;
+    const img = data.image_url
+      || document.querySelector('#product-gallery img.gallery-media')?.src
+      || '/static/img/no-photo.svg';
+
     toast.innerHTML = `
-      <div class="cart-toast__title">✓ ${data.title || 'Товар'} — в корзине</div>
-      <div class="cart-toast__meta">${qty} шт. · ${fmtMoney(sum)}</div>
-      <div class="cart-toast__actions">
-        <a href="/cart/" class="btn btn--sm">В корзину</a>
-        <button type="button" class="btn btn--sm btn--outline" data-cart-remove>Убрать</button>
-        <button type="button" class="btn btn--sm btn--outline" data-cart-dismiss>Закрыть</button>
+      <div class="cart-toast__inner">
+        <div class="cart-toast__main">
+          <div class="cart-toast__thumb">
+            <img src="${esc(img)}" alt="" loading="lazy">
+            <span class="cart-toast__check" aria-hidden="true">✓</span>
+          </div>
+          <div class="cart-toast__info">
+            <p class="cart-toast__label">В корзине</p>
+            <p class="cart-toast__title">${esc(data.title || 'Товар')}</p>
+            <p class="cart-toast__meta">${qty} шт. · ${fmtMoney(sum)}</p>
+          </div>
+          <button type="button" class="cart-toast__close" data-cart-dismiss aria-label="Закрыть">×</button>
+        </div>
+        <div class="cart-toast__footer">
+          <a href="/cart/" class="cart-toast__cta">Перейти в корзину</a>
+          <button type="button" class="cart-toast__undo" data-cart-remove>Убрать</button>
+        </div>
       </div>
     `;
+
     toast.removeAttribute('hidden');
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
     updateBadge(data.count || 0);
-    hideTimer = setTimeout(hide, 9000);
+    hideTimer = setTimeout(hide, 10000);
   };
 
   toast.addEventListener('click', async (e) => {
@@ -1279,12 +1304,10 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
         const money = cell.querySelector('.money') || cell;
         money.innerHTML = fmtMoney(item.subtotal);
       });
-      const input = form.querySelector(`[name="qty_${item.id}"]`)
-        || document.querySelector(`[name="qty_${item.id}"]`);
-      if (input) {
+      document.querySelectorAll(`[name="qty_${item.id}"]`).forEach((input) => {
         input.value = item.quantity;
         input.max = item.max_qty;
-      }
+      });
     });
     const totalEl = document.getElementById('cart-total');
     if (totalEl) totalEl.innerHTML = `Итого: ${fmtMoney(data.total)}`;
@@ -1292,14 +1315,31 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (!data.items.length) window.location.reload();
   };
 
+  const collectQtyValues = () => {
+    const values = {};
+    document.querySelectorAll('.cart-qty-input').forEach((input) => {
+      if (!input.name) return;
+      const visible = input.offsetParent !== null;
+      if (visible || values[input.name] === undefined) {
+        values[input.name] = input.value;
+      }
+    });
+    return values;
+  };
+
+  const syncQtyInputs = (source) => {
+    if (!source?.name) return;
+    document.querySelectorAll(`.cart-qty-input[name="${CSS.escape(source.name)}"]`).forEach((el) => {
+      if (el !== source) el.value = source.value;
+    });
+  };
+
   const saveCart = async () => {
     if (saving) return true;
     saving = true;
     setHint('Сохранение...', false);
     const fd = new FormData(form);
-    document.querySelectorAll('.cart-qty-input').forEach((input) => {
-      if (input.name) fd.set(input.name, input.value);
-    });
+    Object.entries(collectQtyValues()).forEach(([name, val]) => fd.set(name, val));
     try {
       const res = await fetch(form.action, {
         method: 'POST',
@@ -1321,10 +1361,13 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   };
 
   document.querySelectorAll('.cart-qty-input').forEach((input) => {
-    input.addEventListener('change', () => {
+    const scheduleSave = () => {
+      syncQtyInputs(input);
       clearTimeout(timer);
       timer = setTimeout(saveCart, 400);
-    });
+    };
+    input.addEventListener('input', scheduleSave);
+    input.addEventListener('change', scheduleSave);
   });
 
   checkoutBtn?.addEventListener('click', async (e) => {

@@ -99,8 +99,8 @@
         <div class="grid">
             {% for item in complements %}
                 <a href="{% url 'listings:detail' item.slug %}" class="card">
-                    <div class="card__img-wrap">
-                        <img class="card__img" src="{% listing_image_url item %}" alt="" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                    <div class="card__img-wrap{% if not item|listing_has_image %} card__img-wrap--placeholder{% endif %}">
+                        <img class="card__img" src="{% listing_image_url item %}" alt="" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}';this.closest('.card__img-wrap')?.classList.add('card__img-wrap--placeholder')">
                     </div>
                     <div class="card__body"><div class="card__title">{{ item.title }}</div><div class="card__price">{{ item.price|floatformat:0 }} ₽</div></div>
                 </a>
