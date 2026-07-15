@@ -1,6 +1,8 @@
 {% load static listing_extras %}
 <div class="looking-offer-card">
-    <p class="looking-widget__query">Заявка: «{{ sr.query }}»</p>
+    {% if show_query != False %}
+        <p class="looking-offer-card__query">«{{ sr.query }}»</p>
+    {% endif %}
     {% if sr.matched_listing %}
         {% with offer_seller=sr.matched_seller|default:sr.matched_listing.user %}
             {% if offer_seller %}

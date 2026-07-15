@@ -91,9 +91,11 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 }
 .logo{
   flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:8px;
   font-size:1.2rem;font-weight:800;color:var(--text);
   text-decoration:none;letter-spacing:-.03em;white-space:nowrap;
 }
+.logo__icon{display:block;border-radius:6px;flex-shrink:0}
 .logo span{color:var(--primary)}
 .search-bar{
   flex:0 0 200px;
@@ -502,7 +504,13 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 .public-profile__avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--border-light)}
 .public-profile__avatar--empty{display:flex;align-items:center;justify-content:center;background:var(--surface);font-size:2.5rem}
 .public-profile__username{color:var(--muted);margin:4px 0 10px}
-.public-profile__stats{margin-bottom:30px}
+.public-profile__stats{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
+  margin-bottom:18px;color:var(--muted);font-size:.88rem;line-height:1.4;
+}
+.pp-stat{color:var(--text);white-space:nowrap}
+.pp-stat b{color:var(--primary);font-weight:700}
+.pp-stat__dot{color:var(--border);user-select:none;line-height:1}
 
 /* --- Футер --- */
 .footer{background:var(--card);border-top:1px solid var(--border-light);padding:28px 0;margin-top:auto}
@@ -573,6 +581,7 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 
 /* --- Профиль / Ищу --- */
 .looking-offer-card{background:var(--card);padding:20px;border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border-light)}
+.looking-offer-card__query{color:var(--muted);font-size:.9rem;margin:0 0 10px}
 .account-nav,
 .cabinet-nav,
 .profile-buyer-nav{
@@ -1031,6 +1040,17 @@ a:hover{color:var(--link-hover);text-decoration:underline}
 .cart-cards{display:none}
 .cart-footer{margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
 .cart-footer__total{font-size:1.2rem;white-space:nowrap}
+.cart-toast{
+  position:fixed;left:12px;right:12px;bottom:16px;z-index:4000;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-hover);padding:14px 16px;display:flex;flex-direction:column;gap:10px;
+}
+.cart-toast__title{font-weight:700;color:var(--text)}
+.cart-toast__meta{color:var(--muted);font-size:.9rem}
+.cart-toast__actions{display:flex;gap:8px;flex-wrap:wrap}
+.cart-toast__actions .btn{flex:1;min-width:120px;text-align:center}
+.gallery-expand-btn{margin:0 18px 12px}
+.gallery-media--zoom{cursor:zoom-in}
 .public-profile__section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
 .public-profile__section-head .section-title{margin:0}
 .card--muted{opacity:.92}

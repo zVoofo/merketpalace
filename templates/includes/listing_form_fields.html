@@ -13,7 +13,10 @@
             <div class="form__group">{{ form.brand.label_tag }}{{ form.brand }}{% if form.brand.errors %}<div class="form__error">{{ form.brand.errors.0 }}</div>{% endif %}</div>
         </div>
         <div class="form__group">{{ form.description.label_tag }}{{ form.description }}{% if form.description.errors %}<div class="form__error">{{ form.description.errors.0 }}</div>{% endif %}</div>
-        <div class="form__group">{{ form.sku.label_tag }}{{ form.sku }}{% if form.sku.errors %}<div class="form__error">{{ form.sku.errors.0 }}</div>{% endif %}</div>
+        <div class="form__group">{{ form.sku.label_tag }}{{ form.sku }}
+            <p class="form__hint">SKU (артикул) — код производителя для поиска, например BP1234. Необязательно.</p>
+            {% if form.sku.errors %}<div class="form__error">{{ form.sku.errors.0 }}</div>{% endif %}
+        </div>
     </section>
 
     <section class="form__section">

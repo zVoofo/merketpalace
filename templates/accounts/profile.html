@@ -63,7 +63,7 @@
             </div>
             <div class="profile-view__actions">
                 <button type="button" class="btn" id="profile-edit-open">Редактировать профиль</button>
-                <form method="POST" class="profile-role-form" data-confirm="Переключить режим работы?">
+                <form method="POST" class="profile-role-form" data-confirm="{% if user.active_role == 'seller' %}Переключиться в режим покупателя?{% else %}Стать продавцом? Нужны имя, телефон и подтверждённый email.{% endif %}">
                     {% csrf_token %}
                     <input type="hidden" name="switch_role" value="1">
                     <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">

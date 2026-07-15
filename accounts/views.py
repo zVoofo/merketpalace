@@ -21,6 +21,25 @@ from catalog.models import SearchRequest
 from listings.models import Listing, ModerationQueue
 from listings.services import get_seller_rating
 from listings.views import looking_requests_context
+from orders.cart_service import merge_session_cart_into_user
+
+
+def _after_login(request, user):
+    get_wallet(user)
+    merged = merge_session_cart_into_user(request, user)
+    if merged:
+        messages.success(request, f'Корзина обновлена: перенесено {merged} поз.')
+
+
+def _seller_switch_errors(user) -> list[str]:
+    errors = []
+    if not (user.first_name or '').strip():
+        errors.append('заполните имя в профиле')
+    if not user.phone:
+        errors.append('укажите телефон')
+    if not user.email_verified:
+        errors.append('подтвердите email')
+    return errors
 
 
 def staff_required(view_func):
@@ -41,7 +60,7 @@ def register_view(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
-            get_wallet(user)
+            _after_login(request, user)
             login(request, user)
             log_action(user, 'register', 'user', user.pk, request)
             messages.success(request, 'Регистрация успешна!')
@@ -61,8 +80,8 @@ def login_view(request):
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            get_wallet(user)
             login(request, user)
+            _after_login(request, user)
             log_action(user, 'login', 'user', user.pk, request)
             next_url = request.GET.get('next') or request.POST.get('next')
             if next_url and next_url.startswith('/'):
@@ -122,6 +141,7 @@ def social_login(request, provider):
         get_wallet(user)
 
     login(request, user)
+    _after_login(request, user)
     messages.success(request, f'Демо-вход через {provider.upper()} выполнен')
     return redirect('home')
 
@@ -214,6 +234,7 @@ def vk_callback(request):
         return redirect('accounts:login')
 
     login(request, user)
+    _after_login(request, user)
     log_action(user, 'login', 'user', user.pk, request, meta='vk')
     messages.success(request, 'Вход через VK выполнен')
     if next_url and next_url.startswith('/'):
@@ -290,6 +311,11 @@ def profile_view(request):
     if request.method == 'POST':
         if 'switch_role' in request.POST:
             role = request.POST.get('role', 'buyer')
+            if role == 'seller':
+                errs = _seller_switch_errors(request.user)
+                if errs:
+                    messages.error(request, 'Режим продавца: ' + ', '.join(errs) + '.')
+                    return redirect('accounts:profile?edit=1')
             request.user.active_role = role
             request.user.save(update_fields=['active_role'])
             messages.success(request, f'Режим: {"Продавец" if role == "seller" else "Покупатель"}')

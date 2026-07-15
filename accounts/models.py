@@ -17,6 +17,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField('Верифицирован', default=False)
     email_verified = models.BooleanField('Email подтверждён', default=False)
     phone_verified = models.BooleanField('Телефон подтверждён', default=False)
+    delivery_address = models.TextField('Адрес доставки', blank=True)
 
     class Meta:
         verbose_name = 'Пользователь'

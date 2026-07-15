@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
@@ -11,6 +12,27 @@ from accounts.notifications import notify
 from accounts.wallet_service import get_wallet, pay_from_wallet, refund_to_wallet
 from .models import Cart, CartItem, Order, OrderItem
 from .context_processors import get_or_create_cart
+from .cart_service import merge_session_cart_into_user
+
+
+def _cart_json(cart):
+    items = []
+    for item in cart.items.select_related('listing').all():
+        items.append({
+            'id': item.pk,
+            'listing_id': item.listing_id,
+            'title': item.listing.title,
+            'quantity': item.quantity,
+            'price': float(item.price),
+            'subtotal': float(item.subtotal),
+            'max_qty': item.listing.quantity,
+        })
+    return {
+        'ok': True,
+        'total': float(cart.total()),
+        'count': cart.item_count(),
+        'items': items,
+    }
 
 
 def _safe_int(value, default=1, min_val=1):
@@ -98,18 +120,26 @@ def cart_add(request):
     if request.method == 'POST':
         listing_id = request.POST.get('listing_id')
         if not listing_id or not str(listing_id).isdigit():
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'ok': False, 'error': 'Не указан товар'}, status=400)
             messages.error(request, 'Не указан товар')
             return redirect('cart')
         listing = get_object_or_404(Listing, pk=int(listing_id), status=Listing.Status.ACTIVE)
         if is_own_listing(request.user, listing):
-            messages.error(request, 'Нельзя заказать своё объявление')
+            err = 'Нельзя заказать своё объявление'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'ok': False, 'error': err}, status=400)
+            messages.error(request, err)
             next_url = request.POST.get('next')
             if next_url:
                 return redirect(next_url)
             return redirect('listings:detail', slug=listing.slug)
         qty = _safe_int(request.POST.get('quantity', 1))
         if listing.quantity < qty:
-            messages.error(request, 'Недостаточно товара на складе')
+            err = 'Недостаточно товара на складе'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'ok': False, 'error': err}, status=400)
+            messages.error(request, err)
         else:
             cart = get_or_create_cart(request)
             item, created = CartItem.objects.get_or_create(
@@ -119,11 +149,26 @@ def cart_add(request):
             if not created:
                 item.quantity += qty
                 if item.quantity > listing.quantity:
-                    messages.error(request, 'Недостаточно товара')
+                    err = 'Недостаточно товара'
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'ok': False, 'error': err}, status=400)
+                    messages.error(request, err)
                     return redirect(request.POST.get('next', 'cart'))
                 item.save()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                data = _cart_json(cart)
+                data.update({
+                    'title': listing.title,
+                    'listing_id': listing.pk,
+                    'slug': listing.slug,
+                    'message': 'Товар добавлен в корзину',
+                })
+                return JsonResponse(data)
             messages.success(request, 'Товар добавлен в корзину')
-        return redirect(request.POST.get('next', 'cart'))
+        next_url = request.POST.get('next')
+        if next_url and next_url.startswith('/'):
+            return redirect(next_url)
+        return redirect('cart')
     return redirect('cart')
 
 
@@ -149,6 +194,8 @@ def cart_update(request):
                         item.save(update_fields=['quantity'])
                 except CartItem.DoesNotExist:
                     pass
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse(_cart_json(cart))
     return redirect('cart')
 
 
@@ -263,6 +310,10 @@ def checkout_view(request):
                     if not _process_payment(request, order, method, subtotal):
                         raise ValueError('Оплата не прошла')
                     cart.items.all().delete()
+                addr = form.cleaned_data['delivery_address'].strip()
+                if addr and addr != (getattr(request.user, 'delivery_address', '') or ''):
+                    request.user.delivery_address = addr
+                    request.user.save(update_fields=['delivery_address'])
                 notify(
                     seller,
                     'order',
@@ -282,7 +333,9 @@ def checkout_view(request):
             except ValueError as e:
                 messages.error(request, str(e))
     else:
-        form = CheckoutForm()
+        form = CheckoutForm(initial={
+            'delivery_address': getattr(request.user, 'delivery_address', '') or '',
+        })
     return render(request, 'orders/checkout.html', {
         'title': 'Оформление заказа',
         'items': items,

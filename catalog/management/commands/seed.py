@@ -27,6 +27,16 @@ class Command(BaseCommand):
         bosch, _ = Brand.objects.get_or_create(slug='bosch', defaults={'name': 'Bosch'})
         apple, _ = Brand.objects.get_or_create(slug='apple', defaults={'name': 'Apple'})
         samsung, _ = Brand.objects.get_or_create(slug='samsung', defaults={'name': 'Samsung'})
+        for slug, name in (
+            ('denso', 'Denso'), ('mann', 'MANN-FILTER'), ('ngk', 'NGK'), ('continental', 'Continental'),
+            ('philips', 'Philips'), ('xiaomi', 'Xiaomi'), ('huawei', 'Huawei'), ('sony', 'Sony'),
+            ('lg', 'LG'), ('dell', 'Dell'), ('hp', 'HP'), ('lenovo', 'Lenovo'), ('asus', 'ASUS'),
+            ('nike', 'Nike'), ('ikea', 'IKEA'), ('dewalt', 'DeWalt'), ('makita', 'Makita'),
+            ('varta', 'Varta'), ('exide', 'Exide'), ('castrol', 'Castrol'), ('shell', 'Shell'),
+            ('bridgestone', 'Bridgestone'), ('michelin', 'Michelin'), ('goodyear', 'Goodyear'),
+            ('zf', 'ZF'), ('valeo', 'Valeo'), ('febi', 'Febi'), ('gates', 'Gates'),
+        ):
+            Brand.objects.get_or_create(slug=slug, defaults={'name': name})
         bmw, _ = CarMake.objects.get_or_create(name='BMW')
         lada, _ = CarMake.objects.get_or_create(name='Lada')
         CarModel.objects.get_or_create(make=bmw, name='X5')

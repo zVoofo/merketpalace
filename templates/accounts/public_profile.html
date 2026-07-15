@@ -21,20 +21,13 @@
         </div>
 
         <div class="public-profile__stats">
-            <div class="stat">
-                <div class="stat__num">{{ listings_count }}</div>
-                <div class="stat__label">Активных объявлений</div>
-            </div>
-            <div class="stat">
-                <div class="stat__num">{{ total_listings }}</div>
-                <div class="stat__label">Всего объявлений</div>
-            </div>
-            <div class="stat">
-                <div class="stat__num">
-                    {% if rating_count %}★ {{ rating_avg|floatformat:1 }}{% else %}—{% endif %}
-                </div>
-                <div class="stat__label">Рейтинг{% if rating_count %} ({{ rating_count }} отзывов){% endif %}</div>
-            </div>
+            <span class="pp-stat"><b>{{ listings_count }}</b> активных</span>
+            <span class="pp-stat__dot" aria-hidden="true">·</span>
+            <span class="pp-stat"><b>{{ total_listings }}</b> всего</span>
+            <span class="pp-stat__dot" aria-hidden="true">·</span>
+            <span class="pp-stat">
+                {% if rating_count %}★ <b>{{ rating_avg|floatformat:1 }}</b> ({{ rating_count }}){% else %}рейтинг —{% endif %}
+            </span>
         </div>
 
         {% if is_own %}

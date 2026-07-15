@@ -12,7 +12,7 @@
                 <thead><tr><th>Товар</th><th>Цена</th><th>Кол-во</th><th>Сумма</th><th></th></tr></thead>
                 <tbody>
                 {% for item in items %}
-                    <tr>
+                    <tr data-cart-item="{{ item.id }}">
                         <td>
                             <div class="cart-product">
                                 <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-product__thumb">
@@ -39,7 +39,7 @@
 
             <div class="cart-cards">
                 {% for item in items %}
-                    <article class="cart-card">
+                    <article class="cart-card" data-cart-item="{{ item.id }}">
                         <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-card__thumb">
                             <img src="{% listing_image_url item.listing %}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                         </a>

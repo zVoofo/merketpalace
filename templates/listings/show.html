@@ -13,7 +13,7 @@
                             {% if img.media_type == 'video' %}
                                 <video src="{{ img.file.url }}" controls playsinline class="gallery-media"></video>
                             {% else %}
-                                <img src="{{ img.file.url }}" alt="{{ listing.title }}" class="gallery-media" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                <img src="{{ img.file.url }}" alt="{{ listing.title }}" class="gallery-media gallery-media--zoom chat-lightbox-trigger" role="button" tabindex="0" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
                             {% endif %}
                         </div>
                     {% endfor %}
@@ -39,6 +39,7 @@
                         {% endfor %}
                     </div>
                     <div class="gallery-counter"><span id="gallery-current">1</span> / {{ listing.images.count }}</div>
+                    <button type="button" class="btn btn--outline btn--sm gallery-expand-btn" id="gallery-expand">На весь экран</button>
                 {% endif %}
             </div>
             {% else %}
@@ -78,11 +79,10 @@
                     <span>Купить у себя нельзя — управляйте им в <a href="{% url 'seller:listings' %}">Мои объявления</a></span>
                 </div>
             {% elif listing.in_stock %}
-                <form method="POST" action="{% url 'cart_add' %}" data-confirm="Добавить товар в корзину?">
+                <form method="POST" action="{% url 'cart_add' %}" class="product__cart-form" id="product-cart-form">
                     {% csrf_token %}
                     <input type="hidden" name="listing_id" value="{{ listing.id }}">
-                    <input type="hidden" name="next" value="{{ request.path }}">
-                    <button type="submit" class="btn">В корзину</button>
+                    <button type="submit" class="btn" id="product-add-cart">В корзину</button>
                 </form>
             {% endif %}
                 {% if user.is_authenticated and user != listing.user %}

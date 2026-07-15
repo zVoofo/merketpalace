@@ -41,23 +41,31 @@ class RegisterForm(UserCreationForm):
 
 
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(label='Email или логин')
-    password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
+    username = forms.CharField(
+        label='Email или логин',
+        widget=forms.TextInput(attrs={'autocomplete': 'username'}),
+    )
+    password = forms.CharField(
+        label='Пароль',
+        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}),
+    )
 
 
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ('avatar', 'first_name', 'last_name', 'phone', 'email')
+        fields = ('avatar', 'first_name', 'last_name', 'phone', 'email', 'delivery_address')
         labels = {
             'avatar': 'Фото профиля',
             'first_name': 'Имя',
             'last_name': 'Фамилия',
             'phone': 'Телефон',
             'email': 'Электронная почта',
+            'delivery_address': 'Адрес доставки',
         }
         widgets = {
             'phone': forms.TextInput(attrs={'placeholder': '+7 900 000-00-00'}),
+            'delivery_address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Город, улица, дом, квартира'}),
         }
 
 

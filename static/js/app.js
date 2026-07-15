@@ -915,6 +915,20 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   const prev = gallery.querySelector('.gallery-nav--prev');
   const next = gallery.querySelector('.gallery-nav--next');
   const counter = document.getElementById('gallery-current');
+  const expandBtn = document.getElementById('gallery-expand');
+
+  expandBtn?.addEventListener('click', () => {
+    const img = gallery.querySelector('.gallery-slide.is-active img.gallery-media--zoom')
+      || gallery.querySelector('img.gallery-media--zoom');
+    const lb = document.getElementById('img-lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    if (img && lb && lbImg) {
+      lbImg.src = img.src;
+      lb.removeAttribute('hidden');
+      lb.style.display = 'flex';
+    }
+  });
+
   if (slides.length <= 1) return;
 
   let idx = 0;
@@ -1123,12 +1137,126 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   });
 })();
 
+/* --- Корзина: тост после добавления --- */
+(function initCartToast() {
+  const toast = document.getElementById('cart-toast');
+  if (!toast) return;
+
+  const fmtMoney = (n) => `${Math.round(Number(n) || 0).toLocaleString('ru-RU')}\u00a0₽`;
+  const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value
+    || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+  const updateBadge = (count) => {
+    const badge = document.getElementById('cart-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = String(count);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  };
+
+  let hideTimer = null;
+  let lastData = null;
+
+  const hide = () => {
+    toast.setAttribute('hidden', '');
+    toast.innerHTML = '';
+    lastData = null;
+  };
+
+  const show = (data) => {
+    if (!data?.ok) return;
+    lastData = data;
+    clearTimeout(hideTimer);
+    const item = (data.items || []).find((i) => i.listing_id === data.listing_id);
+    const qty = item?.quantity || 1;
+    const sum = item?.subtotal || 0;
+    toast.innerHTML = `
+      <div class="cart-toast__title">✓ ${data.title || 'Товар'} — в корзине</div>
+      <div class="cart-toast__meta">${qty} шт. · ${fmtMoney(sum)}</div>
+      <div class="cart-toast__actions">
+        <a href="/cart/" class="btn btn--sm">В корзину</a>
+        <button type="button" class="btn btn--sm btn--outline" data-cart-remove>Убрать</button>
+        <button type="button" class="btn btn--sm btn--outline" data-cart-dismiss>Закрыть</button>
+      </div>
+    `;
+    toast.removeAttribute('hidden');
+    updateBadge(data.count || 0);
+    hideTimer = setTimeout(hide, 9000);
+  };
+
+  toast.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-cart-dismiss]')) {
+      hide();
+      return;
+    }
+    const removeBtn = e.target.closest('[data-cart-remove]');
+    if (!removeBtn || !lastData) return;
+    const item = (lastData.items || []).find((i) => i.listing_id === lastData.listing_id);
+    if (!item) { hide(); return; }
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrf());
+    fd.append(`qty_${item.id}`, '0');
+    try {
+      const res = await fetch('/cart/update/', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await res.json();
+      if (data.ok) updateBadge(data.count || 0);
+    } catch (err) { /* ignore */ }
+    hide();
+  });
+
+  window.showCartToast = show;
+  window.updateCartBadge = updateBadge;
+})();
+
+/* --- Товар: добавление в корзину без перезагрузки --- */
+(function initProductCartAdd() {
+  const form = document.getElementById('product-cart-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('#product-add-cart');
+    if (btn) btn.disabled = true;
+    const fd = new FormData(form);
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await res.json();
+      if (data.ok && window.showCartToast) {
+        window.showCartToast(data);
+        if (btn) {
+          btn.textContent = 'В корзине';
+          setTimeout(() => { btn.textContent = 'В корзину'; }, 2000);
+        }
+      } else if (data.error) {
+        window.alert(data.error);
+      }
+    } catch (err) {
+      window.alert('Не удалось добавить в корзину');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+})();
+
 /* --- Корзина: автосохранение количества --- */
 (function initCartAutoSave() {
   const form = document.getElementById('cart-form');
   const checkoutBtn = document.getElementById('cart-checkout-btn');
   const hint = document.getElementById('cart-save-hint');
   if (!form) return;
+
+  const fmtMoney = (n) => `${Math.round(Number(n) || 0).toLocaleString('ru-RU')}\u00a0₽`;
 
   let timer = null;
   let saving = false;
@@ -1137,6 +1265,31 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     if (!hint) return;
     hint.textContent = text;
     hint.classList.toggle('cart-save-hint--ok', !!ok);
+  };
+
+  const applyCartData = (data) => {
+    if (!data?.items) return;
+    const byId = Object.fromEntries(data.items.map((i) => [String(i.id), i]));
+    document.querySelectorAll('[data-cart-item]').forEach((row) => {
+      const id = row.dataset.cartItem;
+      if (!byId[id]) row.remove();
+    });
+    data.items.forEach((item) => {
+      document.querySelectorAll(`[data-cart-item="${item.id}"] .cart-line-total`).forEach((cell) => {
+        const money = cell.querySelector('.money') || cell;
+        money.innerHTML = fmtMoney(item.subtotal);
+      });
+      const input = form.querySelector(`[name="qty_${item.id}"]`)
+        || document.querySelector(`[name="qty_${item.id}"]`);
+      if (input) {
+        input.value = item.quantity;
+        input.max = item.max_qty;
+      }
+    });
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.innerHTML = `Итого: ${fmtMoney(data.total)}`;
+    if (window.updateCartBadge) window.updateCartBadge(data.count || 0);
+    if (!data.items.length) window.location.reload();
   };
 
   const saveCart = async () => {
@@ -1148,9 +1301,15 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
       if (input.name) fd.set(input.name, input.value);
     });
     try {
-      const res = await fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' });
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
       saving = false;
-      if (res.ok || res.redirected) {
+      if (res.ok) {
+        const data = await res.json();
+        applyCartData(data);
         setHint('Количество сохранено', true);
         return true;
       }
