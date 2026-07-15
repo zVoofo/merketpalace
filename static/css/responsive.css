@@ -1,14 +1,25 @@
-@media(max-width:1200px){
+/* Широкий экран: полное меню в строку */
+@media(min-width:1500px){
+  .header__inner > .nav{display:flex!important;position:static!important;flex-direction:row!important;padding:0!important;background:transparent!important;box-shadow:none!important;border:none!important}
+  .burger{display:none!important}
+}
+
+/* Уже экран: бургер, без наезда на поиск */
+@media(max-width:1499px){
   .burger{display:block}
   .header__inner{
     grid-template-columns:auto minmax(0,1fr) auto;
     position:relative;
   }
+  .header__inner > .logo{grid-column:1;grid-row:1}
   .header__inner > .search-bar{
     grid-column:2;
+    grid-row:1;
     max-width:none;
+    min-width:0;
     width:100%;
   }
+  .header__inner > .burger{grid-column:3;grid-row:1}
   .header__inner > .nav{
     display:none;
     position:absolute;top:100%;left:0;right:0;
@@ -36,11 +47,15 @@
 @media(max-width:768px){
   .header__inner{
     grid-template-columns:auto minmax(0,1fr) auto;
+    grid-template-rows:auto auto;
   }
+  .header__inner > .logo{grid-column:1;grid-row:1}
+  .header__inner > .burger{grid-column:3;grid-row:1}
   .header__inner > .search-bar{
     grid-column:1/-1;
-    order:3;
+    grid-row:2;
     max-width:none;
+    min-width:0;
     width:100%;
   }
   .nav{
