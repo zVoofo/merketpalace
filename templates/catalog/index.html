@@ -138,15 +138,6 @@
 
             <button type="submit" class="btn filter-panel__submit">Показать</button>
         </form>
-
-        {% if show_search_preview %}
-        <div class="search-preview filter-panel__preview">
-            <h4 class="search-preview__title">Пример по запросу</h4>
-            <div class="search-preview__frame">
-                <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="{{ search_query }}" width="240" height="240" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
-            </div>
-        </div>
-        {% endif %}
     </aside>
 
     <section class="catalog-main">
@@ -164,6 +155,19 @@
             {% endfor %}
             <a href="{% url 'catalog:index' %}{% if filters.q %}?q={{ filters.q|urlencode }}{% endif %}" class="filter-chip filter-chip--clear">Сбросить всё</a>
         </div>
+        {% endif %}
+
+        {% if show_search_preview %}
+        <aside class="query-hint" aria-label="Визуальная подсказка по запросу">
+            <div class="query-hint__media">
+                <img src="{% url 'catalog:search_preview' %}?q={{ search_query|urlencode }}" alt="Пример: {{ search_query }}" width="112" height="112" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+            </div>
+            <div class="query-hint__body">
+                <p class="query-hint__eyebrow">Визуальная подсказка</p>
+                <h2 class="query-hint__query">«{{ search_query }}»</h2>
+                <p class="query-hint__text">Так может выглядеть товар по вашему запросу — ориентир при поиске и сравнении предложений ниже.</p>
+            </div>
+        </aside>
         {% endif %}
 
         {% if search_invalid %}
