@@ -63,11 +63,20 @@
             </div>
             <div class="profile-view__actions">
                 <button type="button" class="btn" id="profile-edit-open">Редактировать профиль</button>
-                <form method="POST" class="profile-role-form" data-confirm="{% if user.active_role == 'seller' %}Переключиться в режим покупателя?{% else %}Стать продавцом? Нужны имя, телефон и подтверждённый email.{% endif %}">
+                {% if user.active_role != 'seller' %}
+                <ul class="seller-reqs" aria-label="Условия для режима продавца">
+                    {% for req in seller_requirements %}
+                        <li class="seller-reqs__item{% if req.ok %} seller-reqs__item--ok{% endif %}">
+                            {% if req.ok %}✓{% else %}○{% endif %} {{ req.label }}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <form method="POST" class="profile-role-form">
                     {% csrf_token %}
                     <input type="hidden" name="switch_role" value="1">
                     <input type="hidden" name="role" value="{% if user.active_role == 'seller' %}buyer{% else %}seller{% endif %}">
-                    <button type="submit" class="btn btn--outline btn--sm">{% if user.active_role == 'seller' %}Режим покупателя{% else %}Режим продавца{% endif %}</button>
+                    <button type="submit" class="btn btn--outline btn--sm">{% if user.active_role == 'seller' %}Режим покупателя{% else %}Стать продавцом{% endif %}</button>
                 </form>
             </div>
         </div>

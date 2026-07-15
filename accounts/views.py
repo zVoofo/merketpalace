@@ -32,14 +32,50 @@ def _after_login(request, user):
 
 
 def _seller_switch_errors(user) -> list[str]:
-    errors = []
+    missing = []
     if not (user.first_name or '').strip():
-        errors.append('заполните имя в профиле')
+        missing.append('имя в профиле')
     if not user.phone:
-        errors.append('укажите телефон')
+        missing.append('телефон')
     if not user.email_verified:
-        errors.append('подтвердите email')
-    return errors
+        missing.append('подтверждённый email')
+    return missing
+
+
+def _seller_requirements(user) -> list[dict]:
+    return [
+        {'label': 'Имя в профиле', 'ok': bool((user.first_name or '').strip())},
+        {'label': 'Телефон', 'ok': bool(user.phone)},
+        {'label': 'Подтверждённый email', 'ok': bool(user.email_verified)},
+    ]
+
+
+def _switch_active_role(request, role: str):
+    """Переключение buyer/seller с понятными уведомлениями."""
+    if role not in ('buyer', 'seller'):
+        messages.error(request, 'Некорректный режим')
+        return redirect('accounts:profile')
+
+    if role == 'seller':
+        missing = _seller_switch_errors(request.user)
+        if missing:
+            if len(missing) == 1:
+                detail = missing[0]
+            else:
+                detail = ', '.join(missing[:-1]) + ' и ' + missing[-1]
+            messages.error(
+                request,
+                f'Не удалось стать продавцом — не хватает: {detail}.',
+            )
+            return redirect(f'{reverse("accounts:profile")}?edit=1')
+
+    request.user.active_role = role
+    request.user.save(update_fields=['active_role'])
+    if role == 'seller':
+        messages.success(request, 'Режим продавца включён.')
+    else:
+        messages.success(request, 'Режим покупателя включён.')
+    return redirect('accounts:profile')
 
 
 def staff_required(view_func):
@@ -311,15 +347,7 @@ def profile_view(request):
     if request.method == 'POST':
         if 'switch_role' in request.POST:
             role = request.POST.get('role', 'buyer')
-            if role == 'seller':
-                errs = _seller_switch_errors(request.user)
-                if errs:
-                    messages.error(request, 'Режим продавца: ' + ', '.join(errs) + '.')
-                    return redirect('accounts:profile?edit=1')
-            request.user.active_role = role
-            request.user.save(update_fields=['active_role'])
-            messages.success(request, f'Режим: {"Продавец" if role == "seller" else "Покупатель"}')
-            return redirect('accounts:profile')
+            return _switch_active_role(request, role)
 
         if 'send_email_code' in request.POST:
             email = request.POST.get('email') or request.user.email
@@ -412,6 +440,7 @@ def profile_view(request):
         'rating_avg': rating_avg,
         'rating_count': rating_count,
         'looking_incoming_count': looking_incoming_count,
+        'seller_requirements': _seller_requirements(request.user),
         **looking_requests_context(request.user),
     }
 

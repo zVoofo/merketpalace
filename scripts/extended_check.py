@@ -134,6 +134,43 @@ except Exception as e:
     fail('parse_catalog_filters', e)
 
 
+# 6. Переключение режима продавца (без 500)
+try:
+    buyer = User.objects.get(username='buyer')
+    buyer.active_role = 'buyer'
+    buyer.first_name = ''
+    buyer.phone = ''
+    buyer.email_verified = False
+    buyer.save(update_fields=['active_role', 'first_name', 'phone', 'email_verified'])
+    c = Client(raise_request_exception=False)
+    c.force_login(buyer)
+    r = c.post('/accounts/profile/', {'switch_role': '1', 'role': 'seller'}, HTTP_HOST=HOST)
+    if r.status_code >= 500:
+        fail('switch_role missing reqs', f'HTTP {r.status_code}')
+    else:
+        ok('switch_role missing reqs -> no 500')
+    buyer.first_name = 'Покупатель'
+    buyer.phone = '+79001112233'
+    buyer.email_verified = True
+    buyer.save(update_fields=['first_name', 'phone', 'email_verified'])
+    r2 = c.post('/accounts/profile/', {'switch_role': '1', 'role': 'seller'}, HTTP_HOST=HOST)
+    if r2.status_code >= 500:
+        fail('switch_role success', f'HTTP {r2.status_code}')
+    else:
+        ok('switch_role success -> no 500')
+    buyer.refresh_from_db()
+    if buyer.active_role != 'seller':
+        fail('switch_role success', f'role is {buyer.active_role}')
+    else:
+        ok('switch_role sets seller role')
+    buyer.active_role = 'buyer'
+    buyer.save(update_fields=['active_role'])
+except User.DoesNotExist:
+    fail('switch_role', 'buyer user missing')
+except Exception as e:
+    fail('switch_role', e)
+
+
 print('\n--- SUMMARY ---')
 print(f'Total failures: {len(FAILURES)}')
 if FAILURES:

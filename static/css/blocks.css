@@ -621,6 +621,13 @@
 .profile-view__org{margin:8px 0 0;font-size:.88rem;color:var(--text-soft)}
 .profile-view__actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .profile-role-form{margin:0}
+.seller-reqs{
+  list-style:none;margin:0;padding:8px 12px;
+  background:var(--bg-soft);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px;
+}
+.seller-reqs__item{white-space:nowrap}
+.seller-reqs__item--ok{color:var(--success-text);font-weight:600}
 .profile-edit__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
 .profile-edit__head h2{margin:0;font-size:1.2rem}
 .profile-edit[hidden]{display:none!important}
