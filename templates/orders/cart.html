@@ -1,39 +1,79 @@
 {% extends 'base.html' %}
+{% load listing_extras static %}
 
 {% block content %}
-<div class="container">
-    <h1 style="margin-bottom:24px">Корзина</h1>
+<div class="container cart-page">
+    <h1 class="page-title cart-page__title">Корзина</h1>
     {% if not items %}
-        <p>Корзина пуста. <a href="{% url 'catalog:index' %}">В каталог</a></p>
+        <p class="empty-hint">Корзина пуста. <a href="{% url 'catalog:index' %}">В каталог</a></p>
     {% else %}
-        <table class="table">
-            <thead><tr><th>Товар</th><th>Цена</th><th>Кол-во</th><th>Сумма</th><th></th></tr></thead>
-            <tbody>
-            {% for item in items %}
-                <tr>
-                    <td><a href="{% url 'listings:detail' item.listing.slug %}">{{ item.listing.title }}</a></td>
-                    <td>{{ item.price|floatformat:0 }} ₽</td>
-                    <td>
-                        <input type="number" name="qty_{{ item.id }}" value="{{ item.quantity }}" min="0" max="{{ item.listing.quantity }}" class="cart-qty-input" form="cart-form" style="width:70px">
-                    </td>
-                    <td class="cart-line-total">{{ item.subtotal|floatformat:0 }} ₽</td>
-                    <td>
-                        <form method="POST" action="{% url 'cart_remove' item.id %}" class="cart-remove-form" data-confirm="Удалить «{{ item.listing.title }}» из корзины?">
+        <div class="cart-panel">
+            <table class="table cart-table">
+                <thead><tr><th>Товар</th><th>Цена</th><th>Кол-во</th><th>Сумма</th><th></th></tr></thead>
+                <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="cart-product">
+                                <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-product__thumb">
+                                    <img src="{% listing_image_url item.listing %}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                </a>
+                                <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-product__title">{{ item.listing.title }}</a>
+                            </div>
+                        </td>
+                        <td><span class="money">{{ item.price|floatformat:0 }}&nbsp;₽</span></td>
+                        <td>
+                            <input type="number" name="qty_{{ item.id }}" value="{{ item.quantity }}" min="0" max="{{ item.listing.quantity }}" class="cart-qty-input" form="cart-form">
+                        </td>
+                        <td class="cart-line-total"><span class="money">{{ item.subtotal|floatformat:0 }}&nbsp;₽</span></td>
+                        <td>
+                            <form method="POST" action="{% url 'cart_remove' item.id %}" class="cart-remove-form" data-confirm="Удалить «{{ item.listing.title }}» из корзины?">
+                                {% csrf_token %}
+                                <button type="submit" class="cart-remove-btn" title="Удалить">×</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="cart-cards">
+                {% for item in items %}
+                    <article class="cart-card">
+                        <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-card__thumb">
+                            <img src="{% listing_image_url item.listing %}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                        </a>
+                        <div class="cart-card__body">
+                            <a href="{% url 'listings:detail' item.listing.slug %}" class="cart-card__title">{{ item.listing.title }}</a>
+                            <div class="cart-card__row">
+                                <span class="cart-card__label">Цена</span>
+                                <span class="money">{{ item.price|floatformat:0 }}&nbsp;₽</span>
+                            </div>
+                            <div class="cart-card__row cart-card__row--qty">
+                                <span class="cart-card__label">Кол-во</span>
+                                <input type="number" name="qty_{{ item.id }}" value="{{ item.quantity }}" min="0" max="{{ item.listing.quantity }}" class="cart-qty-input" form="cart-form">
+                            </div>
+                            <div class="cart-card__row cart-card__row--total">
+                                <span class="cart-card__label">Сумма</span>
+                                <span class="money cart-line-total">{{ item.subtotal|floatformat:0 }}&nbsp;₽</span>
+                            </div>
+                        </div>
+                        <form method="POST" action="{% url 'cart_remove' item.id %}" class="cart-remove-form cart-card__remove" data-confirm="Удалить «{{ item.listing.title }}» из корзины?">
                             {% csrf_token %}
                             <button type="submit" class="cart-remove-btn" title="Удалить">×</button>
                         </form>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+
         <form method="POST" action="{% url 'cart_update' %}" id="cart-form">
             {% csrf_token %}
         </form>
         <p class="cart-save-hint" id="cart-save-hint">Количество сохраняется автоматически</p>
-        <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div class="cart-footer">
             <button type="submit" class="btn btn--outline" form="cart-form">Обновить</button>
-            <strong style="font-size:1.2rem" id="cart-total">Итого: {{ total|floatformat:0 }} ₽</strong>
+            <strong class="cart-footer__total" id="cart-total">Итого: {{ total|floatformat:0 }}&nbsp;₽</strong>
             <a href="{% url 'orders:checkout' %}" class="btn" id="cart-checkout-btn" data-confirm="Перейти к оформлению заказа?">Оформить заказ</a>
         </div>
     {% endif %}

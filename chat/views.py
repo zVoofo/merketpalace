@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.db.models import Q, Count
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -73,7 +73,7 @@ def support_chat(request):
                 send_support_bot_reply(conv, body)
             elif attachment:
                 send_support_bot_reply(conv, 'вложение файл')
-        return redirect('chat:support')
+        return redirect(reverse('chat:support') + '#chat-end')
     conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
     return render(request, 'chat/show.html', {
         'title': 'Поддержка',
@@ -124,7 +124,7 @@ def conversation_detail(request, pk):
             conv.save(update_fields=['last_msg_at'])
             preview = body or f'Вложение: {attachment.name}' if attachment else ''
             _notify_chat_message(conv, request.user, preview)
-        return redirect('chat:detail', pk=pk)
+        return redirect(reverse('chat:detail', kwargs={'pk': pk}) + '#chat-end')
     conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
     return render(request, 'chat/show.html', {
         'title': f'Чат — {conv.listing.title}' if conv.listing else 'Чат',

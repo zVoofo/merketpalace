@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="container">
+<div class="container chat-page">
     {% if listing %}
         <p style="margin-bottom:12px"><a href="{% url 'listings:detail' listing.slug %}">← {{ listing.title }}</a></p>
     {% else %}

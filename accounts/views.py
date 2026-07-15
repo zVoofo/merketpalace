@@ -226,9 +226,15 @@ def public_profile_view(request, username):
     from listings.models import Listing, Review
 
     profile_user = get_object_or_404(User, username=username)
-    active_listings = Listing.objects.filter(
-        user=profile_user, status=Listing.Status.ACTIVE,
-    ).prefetch_related('images').order_by('-published_at')[:12]
+    listings_tab = request.GET.get('listings', 'active')
+    if listings_tab not in ('active', 'all'):
+        listings_tab = 'active'
+
+    base_qs = Listing.objects.filter(user=profile_user).prefetch_related('images')
+    if listings_tab == 'all':
+        listings = base_qs.exclude(status=Listing.Status.ARCHIVED).order_by('-created_at')
+    else:
+        listings = base_qs.filter(status=Listing.Status.ACTIVE).order_by('-published_at')
 
     listings_count = Listing.objects.filter(
         user=profile_user, status=Listing.Status.ACTIVE,
@@ -241,6 +247,12 @@ def public_profile_view(request, username):
         seller=profile_user, status=Review.Status.APPROVED,
     ).aggregate(avg=Avg('rating'), cnt=Count('id'))
 
+    reviews = Review.objects.filter(
+        seller=profile_user, status=Review.Status.APPROVED,
+    ).select_related('listing', 'reviewer').prefetch_related('media').order_by('-created_at')[:30]
+
+    status_labels = dict(Listing.Status.choices)
+
     return render(request, 'accounts/public_profile.html', {
         'title': profile_user.full_name,
         'profile_user': profile_user,
@@ -248,7 +260,10 @@ def public_profile_view(request, username):
         'total_listings': total_listings,
         'rating_avg': reviews_agg['avg'],
         'rating_count': reviews_agg['cnt'] or 0,
-        'listings': active_listings,
+        'listings': listings,
+        'listings_tab': listings_tab,
+        'status_labels': status_labels,
+        'reviews': reviews,
         'is_own': request.user.is_authenticated and request.user.pk == profile_user.pk,
     })
 

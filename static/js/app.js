@@ -440,10 +440,13 @@ document.getElementById('chat-attachment')?.addEventListener('change', function 
   const el = document.getElementById('chat-file-name');
   if (!el) return;
   if (this.files[0]) {
-    el.textContent = '📎 ' + this.files[0].name;
+    const name = this.files[0].name;
+    el.textContent = name.length > 28 ? name.slice(0, 25) + '…' : name;
     el.hidden = false;
+    el.title = name;
   } else {
     el.hidden = true;
+    el.title = '';
   }
 });
 
@@ -720,17 +723,31 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
 /* --- Чат: всегда показывать последние сообщения --- */
 (function initChatScroll() {
   const box = document.getElementById('chat-messages');
+  const anchor = document.getElementById('chat-end');
   if (!box) return;
 
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
   const scrollToBottom = (smooth) => {
-    const top = box.scrollHeight - box.clientHeight;
-    box.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'instant' });
+    const behavior = smooth ? 'smooth' : 'instant';
+    box.scrollTop = box.scrollHeight;
+    anchor?.scrollIntoView({ block: 'end', behavior });
+  };
+
+  const stickChatInView = () => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    document.getElementById('chat-box')?.scrollIntoView({ block: 'end', behavior: 'instant' });
   };
 
   scrollToBottom(false);
   requestAnimationFrame(() => scrollToBottom(false));
 
-  window.addEventListener('load', () => scrollToBottom(false));
+  window.addEventListener('load', () => {
+    scrollToBottom(false);
+    stickChatInView();
+  });
 
   box.querySelectorAll('img, video').forEach((el) => {
     el.addEventListener('load', () => scrollToBottom(false));
@@ -741,12 +758,85 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
   const form = document.getElementById('chat-form');
   form?.addEventListener('submit', markScrollBottom);
 
-  if (sessionStorage.getItem('chat-scroll-bottom')) {
+  if (location.hash === '#chat-end' || sessionStorage.getItem('chat-scroll-bottom')) {
     sessionStorage.removeItem('chat-scroll-bottom');
-    setTimeout(() => scrollToBottom(false), 0);
-    setTimeout(() => scrollToBottom(false), 80);
-    setTimeout(() => scrollToBottom(false), 250);
+    setTimeout(() => { scrollToBottom(false); stickChatInView(); }, 0);
+    setTimeout(() => { scrollToBottom(false); stickChatInView(); }, 80);
+    setTimeout(() => { scrollToBottom(false); stickChatInView(); }, 250);
   }
+})();
+
+/* --- Каталог: подкатегории по выбору раздела --- */
+(function initCategorySubfilter() {
+  const root = document.getElementById('filter-category-root');
+  const subWrap = document.getElementById('filter-category-sub-wrap');
+  const sub = document.getElementById('filter-category-sub');
+  const hidden = document.getElementById('filter-category-value');
+  const dataEl = document.getElementById('category-children-data');
+  if (!root || !subWrap || !sub || !hidden || !dataEl) return;
+
+  let tree = [];
+  try {
+    tree = JSON.parse(dataEl.textContent || '[]');
+  } catch (e) {
+    return;
+  }
+
+  const childMap = Object.fromEntries(tree.map((item) => [String(item.id), item.children || []]));
+
+  const syncHidden = () => {
+    const subVal = sub.value;
+    const rootVal = root.value;
+    if (subWrap.hidden || !subVal) {
+      hidden.value = rootVal || '';
+    } else {
+      hidden.value = subVal;
+    }
+  };
+
+  const fillSub = (parentId, selectedChild) => {
+    const children = childMap[String(parentId)] || [];
+    sub.innerHTML = '<option value="">Вся категория</option>';
+    children.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = String(c.id);
+      opt.textContent = c.name;
+      if (selectedChild && String(selectedChild) === String(c.id)) opt.selected = true;
+      sub.appendChild(opt);
+    });
+    subWrap.hidden = children.length === 0;
+    if (children.length === 0) sub.value = '';
+    syncHidden();
+  };
+
+  const initFromHidden = () => {
+    const current = hidden.value;
+    if (!current) {
+      fillSub(root.value, '');
+      return;
+    }
+    let parentId = '';
+    let childId = '';
+    for (const item of tree) {
+      if (String(item.id) === String(current)) {
+        parentId = String(item.id);
+        break;
+      }
+      const found = (item.children || []).find((c) => String(c.id) === String(current));
+      if (found) {
+        parentId = String(item.id);
+        childId = String(found.id);
+        break;
+      }
+    }
+    if (parentId) root.value = parentId;
+    fillSub(parentId, childId);
+  };
+
+  root.addEventListener('change', () => fillSub(root.value, ''));
+  sub.addEventListener('change', syncHidden);
+  document.getElementById('catalog-filters')?.addEventListener('submit', syncHidden);
+  initFromHidden();
 })();
 
 /* --- Поддержка: быстрые вопросы (без скачка вверх) --- */
@@ -772,6 +862,7 @@ document.querySelectorAll('img[data-fallback]:not(.card__img)').forEach((img) =>
     try {
       const res = await fetch(window.location.pathname, { method: 'POST', body: fd, credentials: 'same-origin' });
       if (res.ok || res.redirected) {
+        window.location.href = window.location.pathname + '#chat-end';
         window.location.reload();
         return;
       }

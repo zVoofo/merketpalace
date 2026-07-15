@@ -41,25 +41,67 @@
             <p style="margin-bottom:20px"><a href="{% url 'accounts:profile' %}?edit=1" class="btn btn--outline btn--sm">Редактировать профиль</a></p>
         {% endif %}
 
-        {% if listings %}
-            <h2 class="section-title">Объявления продавца</h2>
-            <div class="grid">
-                {% for item in listings %}
-                    <a href="{% url 'listings:detail' item.slug %}" class="card">
-                        <div class="card__img-wrap">
-                            <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
-                        </div>
-                        <div class="card__body">
-                            <div class="card__title">{{ item.title }}</div>
-                            <div class="card__price">{{ item.price|floatformat:0 }} ₽</div>
-                        </div>
-                    </a>
-                {% endfor %}
+        {% if profile_user.active_role == 'seller' or listings %}
+            <div class="public-profile__section-head">
+                <h2 class="section-title">Объявления продавца</h2>
+                <div class="hub-subnav">
+                    <a href="?listings=active#listings" class="{% if listings_tab == 'active' %}is-active{% endif %}">Активные <span class="hub-subnav__count">{{ listings_count }}</span></a>
+                    <a href="?listings=all#listings" class="{% if listings_tab == 'all' %}is-active{% endif %}">Все <span class="hub-subnav__count">{{ total_listings }}</span></a>
+                </div>
             </div>
-        {% elif profile_user.active_role == 'seller' %}
-            <p class="empty-hint">У продавца пока нет активных объявлений</p>
+            <div id="listings">
+                {% if listings %}
+                    <div class="grid">
+                        {% for item in listings %}
+                            <a href="{% url 'listings:detail' item.slug %}" class="card{% if item.status != 'active' %} card--muted{% endif %}">
+                                <div class="card__img-wrap">
+                                    <img class="card__img" src="{% listing_image_url item %}" alt="{{ item.title }}" decoding="sync" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                    {% if item.status != 'active' %}
+                                        <span class="card__status">{{ status_labels|dict_get:item.status|default:item.status }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card__body">
+                                    <div class="card__title">{{ item.title }}</div>
+                                    <div class="card__price"><span class="money">{{ item.price|floatformat:0 }}&nbsp;₽</span></div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-hint">{% if listings_tab == 'all' %}Объявлений пока нет{% else %}Нет активных объявлений{% endif %}</p>
+                {% endif %}
+            </div>
         {% else %}
             <p class="empty-hint">Пользователь пока не размещал объявления</p>
+        {% endif %}
+
+        {% if rating_count %}
+            <h2 class="section-title" id="reviews">Отзывы покупателей</h2>
+            <div class="reviews-list">
+                {% for r in reviews %}
+                    <article class="review-card review-card--link">
+                        <div class="review-card__head">
+                            <span class="stars">★ {{ r.rating }}</span>
+                            <strong>{{ r.reviewer.first_name|default:r.reviewer.username }}</strong>
+                            <time class="review-card__date">{{ r.created_at|date:"d.m.Y" }}</time>
+                        </div>
+                        {% if r.listing and r.listing.slug %}
+                            <a href="{% url 'listings:detail' r.listing.slug %}" class="review-card__product">
+                                <span class="review-card__product-thumb">
+                                    <img src="{% listing_image_url r.listing %}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{% static 'img/no-photo.svg' %}'">
+                                </span>
+                                <span class="review-card__product-info">
+                                    <span class="review-card__product-label">Товар</span>
+                                    <span class="review-card__product-title">{{ r.listing.title }}</span>
+                                </span>
+                                <span class="review-card__product-arrow" aria-hidden="true">→</span>
+                            </a>
+                        {% endif %}
+                        {% if r.text %}<p class="review-card__text">{{ r.text|linebreaks }}</p>{% endif %}
+                        {% include 'includes/review_media.html' with media_items=r.media.all %}
+                    </article>
+                {% endfor %}
+            </div>
         {% endif %}
     </div>
 </div>

@@ -49,18 +49,29 @@
                 <legend class="filter-panel__group-title">Категория</legend>
                 <div class="filter-panel__section">
                     <span class="filter-panel__label">Раздел</span>
-                    <select name="category" class="filter-panel__select">
+                    <select id="filter-category-root" class="filter-panel__select" aria-controls="filter-category-sub-wrap">
                         <option value="">Все категории</option>
                         {% for c in categories %}
                             <option value="{{ c.id }}" {% if filters.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                            {% for child in c.children.all %}
-                                {% if child.is_active %}
-                                <option value="{{ child.id }}" {% if filters.category == child.id|stringformat:"s" %}selected{% endif %}> {{ child.name }}</option>
-                                {% endif %}
-                            {% endfor %}
                         {% endfor %}
                     </select>
                 </div>
+                <div class="filter-panel__section" id="filter-category-sub-wrap" hidden>
+                    <span class="filter-panel__label">Подкатегория</span>
+                    <select id="filter-category-sub" class="filter-panel__select">
+                        <option value="">Вся категория</option>
+                    </select>
+                </div>
+                <input type="hidden" name="category" id="filter-category-value" value="{{ filters.category }}">
+                <script type="application/json" id="category-children-data">
+                [
+                {% for c in categories %}
+                    {"id":{{ c.id }},"children":[
+                    {% for child in c.children.all %}{% if child.is_active %}{"id":{{ child.id }},"name":"{{ child.name|escapejs }}"}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}
+                    ]}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+                ]
+                </script>
                 <div class="filter-panel__section">
                     <span class="filter-panel__label">Бренд</span>
                     <select name="brand" class="filter-panel__select">
