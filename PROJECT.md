@@ -74,4 +74,7 @@ python scripts/extended_check.py
 
 - Оплата картой/ЮKassa — заглушка.
 - SMS/email-коды — в консоль/лог (не реальный провайдер).
-- Полный рефакторинг CSS — в планах; стили в `static/css/style.css`.
+
+## CSS
+
+Стили модульные: `static/css/main.css` + слои (`reset` → `tokens` → `layout` → `components` → `blocks` → `responsive`). Подробно: `static/css/CSS_ARCHITECTURE.md`.

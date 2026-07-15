@@ -1,0 +1,9 @@
+/* MarketPlace — точка входа. Редактируйте модули в static/css/, не монолит. */
+@layer reset, tokens, base, layout, components, blocks, responsive;
+
+@import url('reset.css') layer(reset);
+@import url('tokens.css') layer(tokens);
+@import url('layout.css') layer(layout);
+@import url('components.css') layer(components);
+@import url('blocks.css') layer(blocks);
+@import url('responsive.css') layer(responsive);

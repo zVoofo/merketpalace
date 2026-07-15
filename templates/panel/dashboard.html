@@ -3,10 +3,10 @@
 {% block content %}
 <div class="container">
     <h1>Панель управления</h1>
-    <div class="stats" style="margin-top:20px">
-        <div class="stat"><div class="stat__num">{{ stats.users }}</div><div class="stat__label">Пользователей</div></div>
-        <div class="stat"><div class="stat__num">{{ stats.listings }}</div><div class="stat__label">Объявлений</div></div>
-        <div class="stat"><div class="stat__num">{{ stats.pending }}</div><div class="stat__label">На модерации</div></div>
+    <div class="dash-stats" style="margin-top:20px">
+        <div class="dash-stat"><div class="dash-stat__num">{{ stats.users }}</div><div class="dash-stat__label">Пользователей</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ stats.listings }}</div><div class="dash-stat__label">Объявлений</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ stats.pending }}</div><div class="dash-stat__label">На модерации</div></div>
     </div>
     <a href="{% url 'panel:moderation' %}" class="btn">Модерация</a>
     <a href="{% url 'panel:users' %}" class="btn btn--outline" style="margin-left:8px">Пользователи</a>

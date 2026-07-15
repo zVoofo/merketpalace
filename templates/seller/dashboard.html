@@ -5,15 +5,15 @@
     {% include 'includes/cabinet_nav.html' with active='dashboard' requests_badge=incoming_count %}
 
     <h1 style="margin-top:20px;margin-bottom:24px">Кабинет продавца</h1>
-    <div class="stats">
-        <div class="stat"><div class="stat__num">{{ listings_count }}</div><div class="stat__label">Объявлений</div></div>
-        <div class="stat"><div class="stat__num">{{ active_count }}</div><div class="stat__label">Активных</div></div>
-        <div class="stat"><div class="stat__num">{{ archived_count }}</div><div class="stat__label">В архиве</div></div>
-        <div class="stat"><div class="stat__num">{{ total_views }}</div><div class="stat__label">Просмотров</div></div>
-        <div class="stat"><div class="stat__num">{{ orders_count }}</div><div class="stat__label">Заказов</div></div>
-        <div class="stat">
-            <div class="stat__num">{% if rating_count %}★ {{ rating_avg|floatformat:1 }}{% else %}—{% endif %}</div>
-            <div class="stat__label">Рейтинг{% if rating_count %} ({{ rating_count }}){% endif %}</div>
+    <div class="dash-stats">
+        <div class="dash-stat"><div class="dash-stat__num">{{ listings_count }}</div><div class="dash-stat__label">Объявлений</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ active_count }}</div><div class="dash-stat__label">Активных</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ archived_count }}</div><div class="dash-stat__label">В архиве</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ total_views }}</div><div class="dash-stat__label">Просмотров</div></div>
+        <div class="dash-stat"><div class="dash-stat__num">{{ orders_count }}</div><div class="dash-stat__label">Заказов</div></div>
+        <div class="dash-stat">
+            <div class="dash-stat__num">{% if rating_count %}★ {{ rating_avg|floatformat:1 }}{% else %}—{% endif %}</div>
+            <div class="dash-stat__label">Рейтинг{% if rating_count %} ({{ rating_count }}){% endif %}</div>
         </div>
     </div>
     <div class="seller-actions" style="margin-bottom:24px">
